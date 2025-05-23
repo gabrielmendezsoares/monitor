@@ -1,0 +1,10 @@
+cert.pem
+dist
+docker-compose.yml
+node_modules
+key.pem
+logs
+storage.sql
+.env
+.log
+.pem

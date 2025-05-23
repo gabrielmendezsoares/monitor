@@ -1,0 +1,52 @@
+version: '3.8'
+
+x-common-variables: &common-variables
+  networks:
+    - general
+  restart: unless-stopped
+
+services:
+  main-development:
+    <<: *common-variables
+    container_name: main-development-monitor
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - .:/app:delegated
+      - /app/node_modules/
+    env_file: .env
+    depends_on:
+      - db
+      
+  main-production:
+    <<: *common-variables
+    container_name: main-production-monitor
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    env_file: .env
+    depends_on:
+      - db
+
+  db:
+    <<: *common-variables
+    container_name: db-mysql-monitor
+    image: mysql:8.0
+    volumes:
+      - mysql:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=DATABASE
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-ROOT_PASSWORD}
+      - MYSQL_USER=${DB_USER:-USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-PASSWORD}
+
+networks:
+  general:
+    driver: bridge
+
+volumes:
+  mysql:
+    driver: local

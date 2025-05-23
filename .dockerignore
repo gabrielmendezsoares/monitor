@@ -1,0 +1,9 @@
+dist
+docker-compose.yml.example
+node_modules
+storage.sql
+storage.sql.example
+README.md
+.env
+.env.example
+.gitignore
