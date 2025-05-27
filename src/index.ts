@@ -1,12 +1,13 @@
 import schedule from 'node-schedule';
 import { PrismaClient } from '@prisma/client/storage/client.js';
-import { BasicAndBearerStrategy } from './utils/strategies/index.js';
 import { dateTimeFormatterUtil, HttpClientUtil } from './utils/index.js';
+import { BasicAndBearerStrategy } from './utils/strategies/index.js';
 import { IApplication, IApplicationHealthMap, IApplicationMap, IPerformanceDataMap } from './interfaces/index.js';
 
 const API_GATEWAY_API_V1_GET_AUTHENTICATION_URL = `http://${ process.env.SERVER_IP as string }:3043/api/v1/get/authentication`;
 const API_GATEWAY_API_v1_GET_API_DATA_MAP_URL = `http://${ process.env.SERVER_IP as string }:3043/api/v1/get/api-data-map`;
 
+const HEARTBEAT_INTERVAL = 60_000;
 const MONITORING_INTERVAL = 60_000;
 
 const prisma = new PrismaClient();
@@ -68,22 +69,10 @@ const fetchApplicationHealth = async (application: IApplication.IApplication): P
   
   const subResponse = response.data.data[application.apis_name_health];
   
-  if (!subResponse || !subResponse.status) {
-    return { 
-      isHealthy: false,
-      data : {
-        responseTime: {
-          name: 'Tempo de resposta',
-          value: `${ elapsedMiliseconds.toFixed(2) }ms`
-        }
-      }
-    };  
-  }
-  
   return { 
-    isHealthy: true,
+    isHealthy: !!(subResponse && subResponse.status),
     data : {
-      ...subResponse.data.data,
+      ...subResponse.data.monitor,
       responseTime: {
         name: 'Tempo de resposta',
         value: `${ elapsedMiliseconds.toFixed(2) }ms`
@@ -215,12 +204,14 @@ const monitorApplications = async (isPeriodicWarn?: boolean): Promise<void> => {
 
       await monitorApplications();
       
+      setInterval((): void => console.log(`Application | Timestamp: ${ dateTimeFormatterUtil.formatAsDayMonthYearHoursMinutesSeconds(dateTimeFormatterUtil.getLocalDate()) }`), HEARTBEAT_INTERVAL);
       setInterval(monitorApplications, MONITORING_INTERVAL);
       
       schedule.scheduleJob(
         {
           dayOfWeek: [1, 2, 3, 4, 5],
-          hour: [9, 14]
+          hour: [9, 14],
+          minute: 0
         },
         async (): Promise<void> => await monitorApplications(true) 
       );
