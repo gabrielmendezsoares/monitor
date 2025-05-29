@@ -18,6 +18,8 @@ DROP TABLE IF EXISTS `d_guard_servers`;
 DROP TABLE IF EXISTS `d_guard_layouts`;
 DROP TABLE IF EXISTS `d_guard_workstations`;
 DROP TABLE IF EXISTS `neppo_satisfaction_surveys`;
+DROP TABLE IF EXISTS `network_tracker_hosts`;
+DROP TABLE IF EXISTS `network_tracker_events`;
 DROP TABLE IF EXISTS `queries`;
 DROP TABLE IF EXISTS `users`;
 
@@ -337,6 +339,48 @@ CREATE TABLE `neppo_satisfaction_surveys` (
     INDEX `idx_service_order_number` (`service_order_number`),
     INDEX `idx_csid` (`csid`),
     INDEX `idx_phone` (`phone`),
+    INDEX `idx_status` (`status`),
+    INDEX `idx_created_at` (`created_at`),
+    INDEX `idx_updated_at` (`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `network_tracker_hosts` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `ip` VARCHAR(255) NOT NULL UNIQUE,
+    `account` VARCHAR(255) NOT NULL,
+    `partition` VARCHAR(255) NOT NULL,
+    `zone` VARCHAR(255) NOT NULL,
+    `is_alive` BOOLEAN NOT NULL DEFAULT FALSE,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+
+    INDEX `idx_ip` (`ip`),
+    INDEX `idx_account` (`account`),
+    INDEX `idx_partition` (`partition`),
+    INDEX `idx_zone` (`zone`),
+    INDEX `idx_is_alive` (`is_alive`),
+    INDEX `idx_created_at` (`created_at`),
+    INDEX `idx_updated_at` (`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `network_tracker_events` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `host_id` INT NOT NULL,
+    `code` VARCHAR(255) NOT NULL,
+    `status` VARCHAR(255) NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CHECK (`status` IN ('pending', 'sent')),
+
+    PRIMARY KEY (`id`),
+
+    FOREIGN KEY (`host_id`) REFERENCES `network_tracker_hosts`(`id`) ON DELETE CASCADE,
+
+    INDEX `idx_host_id` (`host_id`),
+    INDEX `idx_code` (`code`),
     INDEX `idx_status` (`status`),
     INDEX `idx_created_at` (`created_at`),
     INDEX `idx_updated_at` (`updated_at`)
