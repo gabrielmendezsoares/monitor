@@ -1,4 +1,5 @@
 import axios from 'axios';
+import crypto from 'crypto';
 import { IAuthenticationStrategy } from './strategies/interfaces/index.js';
 
 /**

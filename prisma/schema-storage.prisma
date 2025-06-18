@@ -322,3 +322,40 @@ model neppo_satisfaction_surveys {
   @@index([status], map: "idx_status")
   @@index([updated_at], map: "idx_updated_at")
 }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model network_tracker_events {
+  id                    Int                   @id @default(autoincrement())
+  host_id               Int
+  code                  String                @db.VarChar(255)
+  status                String                @db.VarChar(255)
+  created_at            DateTime              @default(now()) @db.DateTime(0)
+  updated_at            DateTime              @default(now()) @db.DateTime(0)
+  network_tracker_hosts network_tracker_hosts @relation(fields: [host_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "network_tracker_events_ibfk_1")
+
+  @@index([code], map: "idx_code")
+  @@index([created_at], map: "idx_created_at")
+  @@index([host_id], map: "idx_host_id")
+  @@index([status], map: "idx_status")
+  @@index([updated_at], map: "idx_updated_at")
+}
+
+model network_tracker_hosts {
+  id                     Int                      @id @default(autoincrement())
+  ip                     String                   @unique(map: "ip") @db.VarChar(255)
+  account                String                   @db.VarChar(255)
+  partition              String                   @db.VarChar(255)
+  zone                   String                   @db.VarChar(255)
+  is_alive               Boolean                  @default(false)
+  created_at             DateTime                 @default(now()) @db.DateTime(0)
+  updated_at             DateTime                 @default(now()) @db.DateTime(0)
+  network_tracker_events network_tracker_events[]
+
+  @@index([account], map: "idx_account")
+  @@index([created_at], map: "idx_created_at")
+  @@index([ip], map: "idx_ip")
+  @@index([is_alive], map: "idx_is_alive")
+  @@index([partition], map: "idx_partition")
+  @@index([updated_at], map: "idx_updated_at")
+  @@index([zone], map: "idx_zone")
+}
