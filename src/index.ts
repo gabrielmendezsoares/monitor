@@ -1,3 +1,4 @@
+import momentTimezone from 'moment-timezone';
 import schedule from 'node-schedule';
 import { PrismaClient } from '@prisma/client/storage/client.js';
 import { dateTimeFormatterUtil, HttpClientUtil } from './utils/index.js';
@@ -53,9 +54,9 @@ const fetchApplicationHealth = async (application: IApplication.IApplication): P
   const { 
     response, 
     elapsedMiliseconds 
-  } = await measureExecutionTime((): Promise<Axios.AxiosXHR<unknown>> => httpClientInstance.post(API_GATEWAY_API_v1_GET_API_DATA_MAP_URL, { filterMap: { name: application.apis_name_health } }));
+  } = await measureExecutionTime((): Promise<Axios.AxiosXHR<unknown>> => httpClientInstance.post<unknown>(API_GATEWAY_API_v1_GET_API_DATA_MAP_URL, { filterMap: { name: application.apis_name_health } }));
 
-  if (!response || !response.status) {
+  if (!response?.data?.status) {
     return { 
       isHealthy: false,
       data : {
@@ -67,12 +68,36 @@ const fetchApplicationHealth = async (application: IApplication.IApplication): P
     };
   }
   
-  const subResponse = response.data.data[application.apis_name_health];
+  const subResponse = response.data?.data?.[application.apis_name_health];
+
+  if (!subResponse) {
+    return { 
+      isHealthy: false,
+      data : {
+        responseTime: {
+          name: 'Tempo de resposta',
+          value: `${ elapsedMiliseconds.toFixed(2) }ms`
+        }
+      }
+    };
+  }
   
+  if (!subResponse.monitor) {
+    return { 
+      isHealthy: subResponse.status,
+      data : {
+        responseTime: {
+          name: 'Tempo de resposta',
+          value: `${ elapsedMiliseconds.toFixed(2) }ms`
+        }
+      }
+    };
+  }
+
   return { 
-    isHealthy: !!(subResponse && subResponse.status),
+    isHealthy: true,
     data : {
-      ...subResponse.data.monitor,
+      ...subResponse.monitor,
       responseTime: {
         name: 'Tempo de resposta',
         value: `${ elapsedMiliseconds.toFixed(2) }ms`
@@ -81,14 +106,14 @@ const fetchApplicationHealth = async (application: IApplication.IApplication): P
   };
 };
 
-const updateApplicationStatus = async (application: IApplication.IApplication, isActive: boolean, localDate: Date): Promise<IApplication.IApplication> => {
+const updateApplicationStatus = async (application: IApplication.IApplication, isActive: boolean, utcDate: Date): Promise<IApplication.IApplication> => {
   return prisma.applications.update(
     {
       where: { id: application.id },
       data: {
         is_status_transition_notified_by_monitor: true,
         is_application_active: isActive,
-        status_transition_at: localDate
+        status_transition_at: utcDate
       }
     }
   );
@@ -99,12 +124,12 @@ const formatApplicationInformation = (application: IApplication.IApplication, st
     (accumulator: string, object: { name: string, value: unknown }): string => {
       return `${ accumulator }\n- ${ object.name }: ${ object.value }`;
     },
-    `[${ application.application_type }]\n- Desde: ${ dateTimeFormatterUtil.formatDuration((dateTimeFormatterUtil.getLocalDate().getTime() - statusTransitionDate.getTime()) / 60_000) }`
+    `[${ application.application_type }]\n- Desde: ${ dateTimeFormatterUtil.formatDuration((momentTimezone().utc().toDate().getTime() - statusTransitionDate.getTime()) / 60_000) }`
   );
 };
 
-const sendMonitoringReport = async (onlineApplicationList: string[], offlineApplicationList: string[]): Promise<void> => {
-  if (onlineApplicationList.length === 0 && offlineApplicationList.length === 0) {
+const sendMonitoringReport = async (onlineApplicationMapList: string[], offlineApplicationMapList: string[]): Promise<void> => {
+  if (onlineApplicationMapList.length === 0 && offlineApplicationMapList.length === 0) {
     return;
   }
 
@@ -112,11 +137,10 @@ const sendMonitoringReport = async (onlineApplicationList: string[], offlineAppl
 
   const messageList = [
     '📌 *MONITOR DE SERVIÇOS* 📌',
-    onlineApplicationList.length > 0  ? `\n\n🟢 *DISPONÍVEIS (${ onlineApplicationList.length })* 🟢\n\n${ onlineApplicationList.join('\n\n') }` : '',
-    offlineApplicationList.length > 0 ? `\n\n🔴 *INDISPONÍVEIS (${ offlineApplicationList.length })* 🔴\n\n${ offlineApplicationList.join('\n\n') }` : '',
+    onlineApplicationMapList.length > 0  ? `\n\n🟢 *DISPONÍVEIS (${ onlineApplicationMapList.length })* 🟢\n\n${ onlineApplicationMapList.join('\n\n') }` : '',
+    offlineApplicationMapList.length > 0 ? `\n\n🔴 *INDISPONÍVEIS (${ offlineApplicationMapList.length })* 🔴\n\n${ offlineApplicationMapList.join('\n\n') }` : '',
     `\n\n🌐 *Servidor:* ${ process.env.SERVER_IP as string }`,
-    `\n📊 *Total monitorado:* ${ onlineApplicationList.length + offlineApplicationList.length }`,
-    `\n🕒 *Data/hora:* ${ dateTimeFormatterUtil.formatAsDayMonthYearHoursMinutesSeconds(dateTimeFormatterUtil.getLocalDate()) }`
+    `\n📊 *Total monitorado:* ${ onlineApplicationMapList.length + offlineApplicationMapList.length }`
   ];
   
   try {
@@ -132,7 +156,7 @@ const sendMonitoringReport = async (onlineApplicationList: string[], offlineAppl
       }
     );
   } catch (error: unknown) {
-    console.log(`Application | Timestamp: ${ dateTimeFormatterUtil.formatAsDayMonthYearHoursMinutesSeconds(dateTimeFormatterUtil.getLocalDate()) } | Error: ${ error instanceof Error ? error.message : String(error) }`);
+    console.log(`Application | Timestamp: ${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') } | Error: ${ error instanceof Error ? error.message : String(error) }`);
   }
 };
 
@@ -148,22 +172,22 @@ const processApplication = async (application: IApplication.IApplication, isPeri
       };
     } else {
       if (applicationHealthMap.isHealthy && !application.is_application_active) {
-        const localDate = dateTimeFormatterUtil.getLocalDate();
+        const utcDate = momentTimezone().utc().toDate();
   
-        await updateApplicationStatus(application, true, localDate);
+        await updateApplicationStatus(application, true, utcDate);
   
         applicationMap = { 
           isHealthy: true, 
-          information: formatApplicationInformation(application, localDate, applicationHealthMap)
+          information: formatApplicationInformation(application, utcDate, applicationHealthMap)
         };
       } else if (!applicationHealthMap.isHealthy && application.is_application_active) {
-        const localDate = dateTimeFormatterUtil.getLocalDate();
+        const utcDate = momentTimezone().utc().toDate();
   
-        await updateApplicationStatus(application, false, localDate);
+        await updateApplicationStatus(application, false, utcDate);
   
         applicationMap = { 
           isHealthy: false, 
-          information: formatApplicationInformation(application, localDate, applicationHealthMap)
+          information: formatApplicationInformation(application, utcDate, applicationHealthMap)
         };
       } else if (!application.is_status_transition_notified_by_monitor) {
         await updateApplicationStatus(application, application.is_application_active, application.status_transition_at);
@@ -177,7 +201,7 @@ const processApplication = async (application: IApplication.IApplication, isPeri
     
     return applicationMap;
   } catch (error: unknown) {
-    console.log(`Application | Timestamp: ${ dateTimeFormatterUtil.formatAsDayMonthYearHoursMinutesSeconds(dateTimeFormatterUtil.getLocalDate()) } | Error: ${ error instanceof Error ? error.message : String(error) }`);
+    console.log(`Application | Timestamp: ${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') } | Error: ${ error instanceof Error ? error.message : String(error) }`);
    
     return null;
   }
@@ -188,23 +212,23 @@ const monitorApplications = async (isPeriodicWarn?: boolean): Promise<void> => {
     const applicationList = await prisma.applications.findMany();
     const applicationMapList = await Promise.all(applicationList.map(async (application: IApplication.IApplication): Promise<IApplicationMap.IApplicationMap | null> => await processApplication(application, isPeriodicWarn)));
     const applicationMapFilteredList = applicationMapList.filter((applicationMap: IApplicationMap.IApplicationMap | null): boolean => applicationMap !== null) as IApplicationMap.IApplicationMap[];
-    const onlineApplicationList = applicationMapFilteredList.filter((applicationMap: IApplicationMap.IApplicationMap): boolean => applicationMap.isHealthy).map((applicationMap: IApplicationMap.IApplicationMap): string => applicationMap.information);
-    const offlineApplicationList = applicationMapFilteredList.filter((applicationMap: IApplicationMap.IApplicationMap): boolean => !applicationMap.isHealthy).map((applicationMap: IApplicationMap.IApplicationMap): string => applicationMap.information);
+    const onlineApplicationMapList = applicationMapFilteredList.filter((applicationMap: IApplicationMap.IApplicationMap): boolean => applicationMap.isHealthy).map((applicationMap: IApplicationMap.IApplicationMap): string => applicationMap.information);
+    const offlineApplicationMapList = applicationMapFilteredList.filter((applicationMap: IApplicationMap.IApplicationMap): boolean => !applicationMap.isHealthy).map((applicationMap: IApplicationMap.IApplicationMap): string => applicationMap.information);
     
-    await sendMonitoringReport(onlineApplicationList, offlineApplicationList);
+    await sendMonitoringReport(onlineApplicationMapList, offlineApplicationMapList);
   } catch (error: unknown) {
-    console.log(`Application | Timestamp: ${ dateTimeFormatterUtil.formatAsDayMonthYearHoursMinutesSeconds(dateTimeFormatterUtil.getLocalDate()) } | Error: ${ error instanceof Error ? error.message : String(error) }`);
+    console.log(`Application | Timestamp: ${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') } | Error: ${ error instanceof Error ? error.message : String(error) }`);
   }
 };
 
 (
   async (): Promise<void> => {
     try {
-      console.log(`Application | Timestamp: ${ dateTimeFormatterUtil.formatAsDayMonthYearHoursMinutesSeconds(dateTimeFormatterUtil.getLocalDate()) } | Status: Application started`);
+      console.log(`Application | Timestamp: ${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') } | Status: Application started`);
 
       await monitorApplications();
       
-      setInterval((): void => console.log(`Application | Timestamp: ${ dateTimeFormatterUtil.formatAsDayMonthYearHoursMinutesSeconds(dateTimeFormatterUtil.getLocalDate()) }`), HEARTBEAT_INTERVAL);
+      setInterval((): void => console.log(`Application | Timestamp: ${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') }`), HEARTBEAT_INTERVAL);
       setInterval(monitorApplications, MONITORING_INTERVAL);
       
       schedule.scheduleJob(
@@ -216,7 +240,7 @@ const monitorApplications = async (isPeriodicWarn?: boolean): Promise<void> => {
         async (): Promise<void> => await monitorApplications(true) 
       );
     } catch (error: unknown) {
-      console.log(`Application | Timestamp: ${ dateTimeFormatterUtil.formatAsDayMonthYearHoursMinutesSeconds(dateTimeFormatterUtil.getLocalDate()) } | Error: ${ error instanceof Error ? error.message : String(error) }`);
+      console.log(`Application | Timestamp: ${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') } | Error: ${ error instanceof Error ? error.message : String(error) }`);
     }
   }
 )();
