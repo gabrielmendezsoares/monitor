@@ -1,4 +1,4 @@
-export interface IApplicationMap {
+export interface IMonitorApplicationMap {
   isHealthy: boolean;
   information: string;
 }

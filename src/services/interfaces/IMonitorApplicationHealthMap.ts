@@ -1,4 +1,4 @@
-export interface IApplicationHealthMap {
+export interface IMonitorApplicationHealthMap {
   isHealthy: boolean;
   data: {
     responseTime: {
