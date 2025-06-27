@@ -328,6 +328,7 @@ CREATE TABLE `monitor_applications` (
 CREATE TABLE `neppo_satisfaction_surveys` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `sequential_id` VARCHAR(255) NOT NULL UNIQUE,
+    `defect` VARCHAR(255) NOT NULL,
     `phone` VARCHAR(255) NOT NULL,
     `status` VARCHAR(255) NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -338,6 +339,7 @@ CREATE TABLE `neppo_satisfaction_surveys` (
     PRIMARY KEY (`id`),
 
     INDEX `idx_sequential_id` (`sequential_id`),
+    INDEX `idx_defect` (`defect`),
     INDEX `idx_phone` (`phone`),
     INDEX `idx_status` (`status`),
     INDEX `idx_created_at` (`created_at`),
