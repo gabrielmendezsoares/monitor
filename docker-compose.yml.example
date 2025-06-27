@@ -13,6 +13,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: development
+    ports:
+      - "3771:3771"
     volumes:
       - .:/app:delegated
       - /app/node_modules/
@@ -27,6 +29,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
+    ports:
+      - "3771:3771"
     env_file: .env
     depends_on:
       - db
@@ -35,6 +39,8 @@ services:
     <<: *common-variables
     container_name: db-mysql-monitor
     image: mysql:8.0
+    ports:
+      - "4406:3306"
     volumes:
       - mysql:/var/lib/mysql
     environment:

@@ -11,12 +11,12 @@ DROP TABLE IF EXISTS `role_types`;
 
 
 DROP TABLE IF EXISTS `apis`;
-DROP TABLE IF EXISTS `applications`;
 DROP TABLE IF EXISTS `databases`;
 DROP TABLE IF EXISTS `d_guard_servers`;
 DROP TABLE IF EXISTS `d_guard_layouts`;
 DROP TABLE IF EXISTS `d_guard_workstations`;
 DROP TABLE IF EXISTS `fence_alerts`;
+DROP TABLE IF EXISTS `monitor_applications`;
 DROP TABLE IF EXISTS `neppo_satisfaction_surveys`;
 DROP TABLE IF EXISTS `network_tracker_hosts`;
 DROP TABLE IF EXISTS `network_tracker_events`;
@@ -207,30 +207,6 @@ CREATE TABLE `apis` (
     INDEX `idx_updated_at` (`updated_at`)  
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `applications` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `application_type` VARCHAR(255) NOT NULL UNIQUE,
-    `apis_name_health` VARCHAR(255) NOT NULL,
-    `is_status_transition_notified_by_monitor` BOOLEAN NOT NULL DEFAULT FALSE,
-    `is_application_active` BOOLEAN NOT NULL DEFAULT FALSE,
-    `status_transition_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (`id`),
-
-    FOREIGN KEY (`application_type`) REFERENCES `application_types`(`application_type`) ON DELETE CASCADE,
-    FOREIGN KEY (`apis_name_health`) REFERENCES `apis`(`name`) ON DELETE CASCADE,
-
-    INDEX `idx_application_type` (`application_type`),
-    INDEX `idx_apis_name_health` (`apis_name_health`),
-    INDEX `idx_is_status_transition_notified_by_monitor` (`is_status_transition_notified_by_monitor`),
-    INDEX `idx_is_application_active` (`is_application_active`),
-    INDEX `idx_status_transition_at` (`status_transition_at`),
-    INDEX `idx_created_at` (`created_at`),
-    INDEX `idx_updated_at` (`updated_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE `databases` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(255) UNIQUE NOT NULL,
@@ -275,18 +251,18 @@ CREATE TABLE `d_guard_servers` (
 CREATE TABLE `d_guard_layouts` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `guid` VARCHAR(255) NOT NULL,
-    `server_id` INT NOT NULL,
+    `d_guard_servers_id` INT NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`id`),
 
-    FOREIGN KEY (`server_id`) REFERENCES `d_guard_servers`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`d_guard_servers_id`) REFERENCES `d_guard_servers`(`id`) ON DELETE CASCADE,
 
-    UNIQUE KEY `unique_guid_server_id` (`guid`, `server_id`),
+    UNIQUE KEY `unique_guid_d_guard_servers_id` (`guid`, `d_guard_servers_id`),
 
     INDEX `idx_guid` (`guid`),
-    INDEX `idx_server_id` (`server_id`),
+    INDEX `idx_d_guard_servers_id` (`d_guard_servers_id`),
     INDEX `idx_created_at` (`created_at`),
     INDEX `idx_updated_at` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -294,18 +270,18 @@ CREATE TABLE `d_guard_layouts` (
 CREATE TABLE `d_guard_workstations` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `guid` VARCHAR(255) NOT NULL,
-    `server_id` INT NOT NULL,
+    `d_guard_servers_id` INT NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`id`),
 
-    FOREIGN KEY (`server_id`) REFERENCES `d_guard_servers`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`d_guard_servers_id`) REFERENCES `d_guard_servers`(`id`) ON DELETE CASCADE,
 
-    UNIQUE KEY `unique_guid_server_id` (`guid`, `server_id`),
+    UNIQUE KEY `unique_guid_d_guard_servers_id` (`guid`, `d_guard_servers_id`),
 
     INDEX `idx_guid` (`guid`),
-    INDEX `idx_server_id` (`server_id`),
+    INDEX `idx_d_guard_servers_id` (`d_guard_servers_id`),
     INDEX `idx_created_at` (`created_at`),
     INDEX `idx_updated_at` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -325,10 +301,33 @@ CREATE TABLE `fence_alerts` (
     INDEX `idx_updated_at` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `monitor_applications` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `application_type` VARCHAR(255) NOT NULL UNIQUE,
+    `apis_id` INT NOT NULL,
+    `is_alive` BOOLEAN NOT NULL DEFAULT TRUE,
+    `is_alive_transition_notified_by_monitor` BOOLEAN NOT NULL DEFAULT FALSE,
+    `is_alive_transition_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+
+    FOREIGN KEY (`application_type`) REFERENCES `application_types`(`application_type`) ON DELETE CASCADE,
+    FOREIGN KEY (`apis_id`) REFERENCES `apis`(`id`) ON DELETE CASCADE,
+
+    INDEX `idx_application_type` (`application_type`),
+    INDEX `idx_apis_id` (`apis_id`),
+    INDEX `idx_is_alive` (`is_alive`),
+    INDEX `idx_is_alive_transition_notified_by_monitor` (`is_alive_transition_notified_by_monitor`),
+    INDEX `idx_is_alive_transition_at` (`is_alive_transition_at`),
+    INDEX `idx_created_at` (`created_at`),
+    INDEX `idx_updated_at` (`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `neppo_satisfaction_surveys` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `sequential_id` VARCHAR(255) NOT NULL UNIQUE,
-    `account_code` VARCHAR(255) NOT NULL,
     `phone` VARCHAR(255) NOT NULL,
     `status` VARCHAR(255) NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -339,7 +338,6 @@ CREATE TABLE `neppo_satisfaction_surveys` (
     PRIMARY KEY (`id`),
 
     INDEX `idx_sequential_id` (`sequential_id`),
-    INDEX `idx_account_code` (`account_code`),
     INDEX `idx_phone` (`phone`),
     INDEX `idx_status` (`status`),
     INDEX `idx_created_at` (`created_at`),
@@ -349,10 +347,9 @@ CREATE TABLE `neppo_satisfaction_surveys` (
 CREATE TABLE `network_tracker_hosts` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `ip` VARCHAR(255) NOT NULL UNIQUE,
-    `account` VARCHAR(255) NOT NULL,
-    `company_id` INT NOT NULL,
-    `partition` VARCHAR(255) NOT NULL,
-    `zone` VARCHAR(255) NOT NULL,
+    `description` VARCHAR(255) NOT NULL,
+    `account_id` VARCHAR(255) NOT NULL,
+    `partition_id` VARCHAR(255) NOT NULL,
     `consecutive_successes` INT NOT NULL DEFAULT 0,
     `consecutive_failures` INT NOT NULL DEFAULT 0,
     `is_alive` BOOLEAN NOT NULL DEFAULT TRUE,
@@ -363,10 +360,9 @@ CREATE TABLE `network_tracker_hosts` (
     PRIMARY KEY (`id`),
 
     INDEX `idx_ip` (`ip`),
-    INDEX `idx_account` (`account`),
-    INDEX `idx_company_id` (`company_id`),
-    INDEX `idx_partition` (`partition`),
-    INDEX `idx_zone` (`zone`),
+    INDEX `idx_description` (`description`),
+    INDEX `idx_account_id` (`account_id`),
+    INDEX `idx_partition_id` (`partition_id`),
     INDEX `idx_consecutive_successes` (`consecutive_successes`),
     INDEX `idx_consecutive_failures` (`consecutive_failures`),
     INDEX `idx_is_alive` (`is_alive`),
@@ -377,19 +373,19 @@ CREATE TABLE `network_tracker_hosts` (
 
 CREATE TABLE `network_tracker_events` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `host_id` INT NOT NULL,
+    `network_tracker_hosts_id` INT NOT NULL,
     `code` VARCHAR(255) NOT NULL,
     `status` VARCHAR(255) NOT NULL DEFAULT 'pending',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CHECK (`status` IN ('pending', 'sent')),
+    CHECK (`status` IN ('failed', 'pending', 'sent')),
 
     PRIMARY KEY (`id`),
 
-    FOREIGN KEY (`host_id`) REFERENCES `network_tracker_hosts`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`network_tracker_hosts_id`) REFERENCES `network_tracker_hosts`(`id`) ON DELETE CASCADE,
 
-    INDEX `idx_host_id` (`host_id`),
+    INDEX `idx_network_tracker_hosts_id` (`network_tracker_hosts_id`),
     INDEX `idx_code` (`code`),
     INDEX `idx_status` (`status`),
     INDEX `idx_created_at` (`created_at`),
@@ -522,16 +518,16 @@ BEGIN
     SET `error_message` = NULL;
     
     CASE `database_type`
-        WHEN 'Oracle' THEN
-            IF `connect_string` IS NULL THEN
-                SET `is_valid` = FALSE;
-                SET `error_message` = 'Invalid database configuration: Connect string is required';
-            END IF;
-        
         WHEN 'MySQL' THEN
             IF `host` IS NULL OR `database` IS NULL THEN
                 SET `is_valid` = FALSE;
                 SET `error_message` = 'Invalid database configuration: Both host and database are required';
+            END IF;
+
+        WHEN 'Oracle' THEN
+            IF `connect_string` IS NULL THEN
+                SET `is_valid` = FALSE;
+                SET `error_message` = 'Invalid database configuration: Connect string is required';
             END IF;
             
         WHEN 'SQL Server' THEN
