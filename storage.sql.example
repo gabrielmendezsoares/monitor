@@ -162,7 +162,7 @@ CREATE TABLE `apis` (
     `query_parameter_map` JSON,
     `header_map` JSON,
     `body` JSON,
-    `is_api_active` BOOLEAN NOT NULL DEFAULT TRUE,
+    `is_api_active` BOOLEAN NOT NULL DEFAULT FALSE,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -307,6 +307,7 @@ CREATE TABLE `monitor_applications` (
     `apis_id` INT NOT NULL,
     `is_alive` BOOLEAN NOT NULL DEFAULT TRUE,
     `is_alive_transition_notified_by_monitor` BOOLEAN NOT NULL DEFAULT FALSE,
+    `is_monitor_application_active` BOOLEAN NOT NULL DEFAULT FALSE,
     `is_alive_transition_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -320,6 +321,7 @@ CREATE TABLE `monitor_applications` (
     INDEX `idx_apis_id` (`apis_id`),
     INDEX `idx_is_alive` (`is_alive`),
     INDEX `idx_is_alive_transition_notified_by_monitor` (`is_alive_transition_notified_by_monitor`),
+    INDEX `idx_is_monitor_application_active` (`is_monitor_application_active`),
     INDEX `idx_is_alive_transition_at` (`is_alive_transition_at`),
     INDEX `idx_created_at` (`created_at`),
     INDEX `idx_updated_at` (`updated_at`)
@@ -327,21 +329,27 @@ CREATE TABLE `monitor_applications` (
 
 CREATE TABLE `neppo_satisfaction_surveys` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `sequential_id` VARCHAR(255) NOT NULL UNIQUE,
+    `sequential_id` VARCHAR(255) NOT NULL,
     `defect` VARCHAR(255) NOT NULL,
     `phone` VARCHAR(255) NOT NULL,
     `status` VARCHAR(255) NOT NULL,
+    `type` VARCHAR(255) NOT NULL,
+    `started_at` DATETIME NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CHECK (`status` IN ('failed', 'pending', 'sent')),
+    CHECK (`type` IN ('cloud', 'desktop')),
 
     PRIMARY KEY (`id`),
+    
+    UNIQUE KEY `unique_sequential_id_type` (`sequential_id`, `type`),
 
     INDEX `idx_sequential_id` (`sequential_id`),
     INDEX `idx_defect` (`defect`),
     INDEX `idx_phone` (`phone`),
     INDEX `idx_status` (`status`),
+    INDEX `idx_type` (`type`),
     INDEX `idx_created_at` (`created_at`),
     INDEX `idx_updated_at` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -402,7 +410,7 @@ CREATE TABLE `queries` (
     `sql` LONGTEXT NOT NULL,
     `variable_map` JSON,
     `replacement_map` JSON,
-    `is_query_active` BOOLEAN NOT NULL DEFAULT TRUE,
+    `is_query_active` BOOLEAN NOT NULL DEFAULT FALSE,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -427,7 +435,7 @@ CREATE TABLE `users` (
     `role_list` JSON NOT NULL,
     `username` VARCHAR(255) NOT NULL,
     `password` LONGBLOB NOT NULL,
-    `is_user_active` BOOLEAN NOT NULL DEFAULT TRUE,
+    `is_user_active` BOOLEAN NOT NULL DEFAULT FALSE,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 

@@ -220,7 +220,7 @@ const sendMonitoringReport = async (onlineMonitorApplicationMapList: string[], o
 
 export const monitorApplications = async (isPeriodicWarn?: boolean): Promise<void> => {
   try {
-    const monitorApplicationList = await prisma.monitor_applications.findMany();
+    const monitorApplicationList = await prisma.monitor_applications.findMany({ where: { is_monitor_application_active: true } });
     const monitorApplicationMapList = await Promise.all(monitorApplicationList.map(async (monitorApplication: IMonitorApplication.IMonitorApplication): Promise<IMonitorApplicationMap.IMonitorApplicationMap | null> => await processMonitorApplication(monitorApplication, isPeriodicWarn)));
     const monitorApplicationMapFilteredList = monitorApplicationMapList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap | null): boolean => monitorApplicationMap !== null) as IMonitorApplicationMap.IMonitorApplicationMap[];
     const onlineMonitorApplicationMapList = monitorApplicationMapFilteredList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): boolean => monitorApplicationMap.isHealthy).map((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): string => monitorApplicationMap.information);
