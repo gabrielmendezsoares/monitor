@@ -10,7 +10,10 @@ const REQUEST_TIMEOUT = 30_000;
 
 const prisma = new PrismaClient();
 
-const measureExecutionTime = async (handler: Function, ...argumentList: unknown[]): Promise<IPerformanceDataMap.IPerformanceDataMap> => {
+const measureExecutionTime = async (
+  handler: Function, 
+  ...argumentList: unknown[]
+): Promise<IPerformanceDataMap.IPerformanceDataMap> => {
   const startTime = performance.now();
   
   try {
@@ -31,7 +34,7 @@ const measureExecutionTime = async (handler: Function, ...argumentList: unknown[
   }
 };
 
-const fetchMonitorApplicationHealth = async (monitorApplication: IMonitorApplication.IMonitorApplication): Promise<IMonitorApplicationHealthMap.IMonitorApplicationHealthMap> => {
+const fetchMonitorApplicationHealthMap = async (monitorApplication: IMonitorApplication.IMonitorApplication): Promise<IMonitorApplicationHealthMap.IMonitorApplicationHealthMap> => {
   const httpClientInstance = new HttpClientUtil.HttpClient();
 
   httpClientInstance.setAuthenticationStrategy(
@@ -117,63 +120,75 @@ const fetchMonitorApplicationHealth = async (monitorApplication: IMonitorApplica
   };
 };
 
-const formatMonitorApplicationInformation = (monitorApplication: IMonitorApplication.IMonitorApplication, statusTransitionDate: Date, healthDataMap: IMonitorApplicationHealthMap.IMonitorApplicationHealthMap): string => {
-  return Object.values(healthDataMap.data).reduce(
+const formatMonitorApplicationInformation = (
+  monitorApplication: IMonitorApplication.IMonitorApplication, 
+  monitorApplicationHealthMap: IMonitorApplicationHealthMap.IMonitorApplicationHealthMap,
+  isAliveTransitionAt: Date
+): string => {
+  return Object.values(monitorApplicationHealthMap.data).reduce(
     (accumulator: string, object: { name: string, value: unknown }): string => {
       return `${ accumulator }\n- ${ object.name }: ${ object.value }`;
     },
-    `[${ monitorApplication.application_type }]\n- Desde: ${ dateTimeFormatterUtil.formatDuration((momentTimezone().utc().toDate().getTime() - statusTransitionDate.getTime()) / 60_000) }`
+    `[${ monitorApplication.application_type }]\n- Desde: ${ dateTimeFormatterUtil.formatDuration((momentTimezone().utc().toDate().getTime() - isAliveTransitionAt.getTime()) / 60_000) }`
   );
 };
 
-const updateMonitorApplicationStatus = async (monitorApplication: IMonitorApplication.IMonitorApplication, isActive: boolean, utcDate: Date): Promise<IMonitorApplication.IMonitorApplication> => {
+const updateMonitorApplicationAliveStatus = async (
+  monitorApplication: IMonitorApplication.IMonitorApplication, 
+  isAlive: boolean, 
+  isAliveTransitionAt: Date
+): Promise<IMonitorApplication.IMonitorApplication> => {
   return prisma.monitor_applications.update(
     {
       where: { id: monitorApplication.id },
       data: {
-        is_alive: isActive,
+        is_alive: isAlive,
         is_alive_transition_notified_by_monitor: true,
-        is_alive_transition_at: utcDate
+        is_alive_transition_at: isAliveTransitionAt
       }
     }
   );
 };
 
-const processMonitorApplication = async (monitorApplication: IMonitorApplication.IMonitorApplication, isPeriodicWarn?: boolean): Promise<IMonitorApplicationMap.IMonitorApplicationMap | null> => {
+const processMonitorApplication = async (
+  monitorApplication: IMonitorApplication.IMonitorApplication, 
+  isPeriodicWarn?: boolean
+): Promise<IMonitorApplicationMap.IMonitorApplicationMap | null> => {
   try {
-    const monitorApplicationHealthMap = await fetchMonitorApplicationHealth(monitorApplication);
+    const monitorApplicationHealthMap = await fetchMonitorApplicationHealthMap(monitorApplication);
+
     let monitorApplicationMap = null;
     
     if (isPeriodicWarn) {
       monitorApplicationMap = { 
         isHealthy: monitorApplication.is_alive, 
-        information: formatMonitorApplicationInformation(monitorApplication, monitorApplication.is_alive_transition_at, monitorApplicationHealthMap) 
+        information: formatMonitorApplicationInformation(monitorApplication, monitorApplicationHealthMap, monitorApplication.is_alive_transition_at) 
       };
     } else {
       if (monitorApplicationHealthMap.isHealthy && !monitorApplication.is_alive) {
-        const utcDate = momentTimezone().utc().toDate();
+        const isAliveTransitionAt = momentTimezone().utc().toDate();
   
-        await updateMonitorApplicationStatus(monitorApplication, true, utcDate);
+        await updateMonitorApplicationAliveStatus(monitorApplication, true, isAliveTransitionAt);
   
         monitorApplicationMap = { 
           isHealthy: true, 
-          information: formatMonitorApplicationInformation(monitorApplication, utcDate, monitorApplicationHealthMap)
+          information: formatMonitorApplicationInformation(monitorApplication, monitorApplicationHealthMap, isAliveTransitionAt)
         };
       } else if (!monitorApplicationHealthMap.isHealthy && monitorApplication.is_alive) {
-        const utcDate = momentTimezone().utc().toDate();
+        const isAliveTransitionAt = momentTimezone().utc().toDate();
   
-        await updateMonitorApplicationStatus(monitorApplication, false, utcDate);
+        await updateMonitorApplicationAliveStatus(monitorApplication, false, isAliveTransitionAt);
   
         monitorApplicationMap = { 
           isHealthy: false, 
-          information: formatMonitorApplicationInformation(monitorApplication, utcDate, monitorApplicationHealthMap)
+          information: formatMonitorApplicationInformation(monitorApplication, monitorApplicationHealthMap, isAliveTransitionAt)
         };
       } else if (!monitorApplication.is_alive_transition_notified_by_monitor) {
-        await updateMonitorApplicationStatus(monitorApplication, monitorApplication.is_alive, monitorApplication.is_alive_transition_at);
+        await updateMonitorApplicationAliveStatus(monitorApplication, monitorApplication.is_alive, monitorApplication.is_alive_transition_at);
   
         monitorApplicationMap = { 
           isHealthy: monitorApplication.is_alive, 
-          information: formatMonitorApplicationInformation(monitorApplication, monitorApplication.is_alive_transition_at, monitorApplicationHealthMap) 
+          information: formatMonitorApplicationInformation(monitorApplication, monitorApplicationHealthMap, monitorApplication.is_alive_transition_at) 
         };
       }
     }
@@ -186,7 +201,10 @@ const processMonitorApplication = async (monitorApplication: IMonitorApplication
   }
 };
 
-const sendMonitoringReport = async (onlineMonitorApplicationMapList: string[], offlineMonitorApplicationMapList: string[]): Promise<void> => {
+const sendMonitoringReport = async (
+  onlineMonitorApplicationMapList: string[], 
+  offlineMonitorApplicationMapList: string[]
+): Promise<void> => {
   if (onlineMonitorApplicationMapList.length === 0 && offlineMonitorApplicationMapList.length === 0) {
     return;
   }
@@ -220,7 +238,7 @@ const sendMonitoringReport = async (onlineMonitorApplicationMapList: string[], o
 
 export const monitorApplications = async (isPeriodicWarn?: boolean): Promise<void> => {
   try {
-    const monitorApplicationList = await prisma.monitor_applications.findMany();
+    const monitorApplicationList = await prisma.monitor_applications.findMany({ where: { is_monitor_application_active: true } });
     const monitorApplicationMapList = await Promise.all(monitorApplicationList.map(async (monitorApplication: IMonitorApplication.IMonitorApplication): Promise<IMonitorApplicationMap.IMonitorApplicationMap | null> => await processMonitorApplication(monitorApplication, isPeriodicWarn)));
     const monitorApplicationMapFilteredList = monitorApplicationMapList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap | null): boolean => monitorApplicationMap !== null) as IMonitorApplicationMap.IMonitorApplicationMap[];
     const onlineMonitorApplicationMapList = monitorApplicationMapFilteredList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): boolean => monitorApplicationMap.isHealthy).map((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): string => monitorApplicationMap.information);

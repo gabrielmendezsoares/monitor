@@ -46,7 +46,7 @@ model apis {
   query_parameter_map                                                         Json?
   header_map                                                                  Json?
   body                                                                        Json?
-  is_api_active                                                               Boolean                @default(true)
+  is_api_active                                                               Boolean                @default(false)
   created_at                                                                  DateTime               @default(now()) @db.DateTime(0)
   updated_at                                                                  DateTime               @default(now()) @db.DateTime(0)
   authentication_types                                                        authentication_types?  @relation(fields: [authentication_type], references: [authentication_type], onDelete: Cascade, onUpdate: NoAction, map: "apis_ibfk_1")
@@ -218,7 +218,7 @@ model queries {
   sql             String    @db.LongText
   variable_map    Json?
   replacement_map Json?
-  is_query_active Boolean   @default(true)
+  is_query_active Boolean   @default(false)
   created_at      DateTime  @default(now()) @db.DateTime(0)
   updated_at      DateTime  @default(now()) @db.DateTime(0)
   databases       databases @relation(fields: [databases_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "queries_ibfk_1")
@@ -261,7 +261,7 @@ model users {
   role_list         Json
   username          String            @db.VarChar(255)
   password          Bytes
-  is_user_active    Boolean           @default(true)
+  is_user_active    Boolean           @default(false)
   created_at        DateTime          @default(now()) @db.DateTime(0)
   updated_at        DateTime          @default(now()) @db.DateTime(0)
   application_types application_types @relation(fields: [application_type], references: [application_type], onDelete: Cascade, onUpdate: NoAction, map: "users_ibfk_1")
@@ -277,17 +277,23 @@ model users {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model neppo_satisfaction_surveys {
   id            Int      @id @default(autoincrement())
-  sequential_id String   @unique(map: "sequential_id") @db.VarChar(255)
+  sequential_id String   @db.VarChar(255)
+  defect        String   @db.VarChar(255)
   phone         String   @db.VarChar(255)
   status        String   @db.VarChar(255)
+  type          String   @db.VarChar(255)
+  started_at    DateTime @db.DateTime(0)
   created_at    DateTime @default(now()) @db.DateTime(0)
   updated_at    DateTime @default(now()) @db.DateTime(0)
 
+  @@unique([sequential_id, type], map: "unique_sequential_id_type")
   @@index([created_at], map: "idx_created_at")
   @@index([phone], map: "idx_phone")
   @@index([status], map: "idx_status")
   @@index([updated_at], map: "idx_updated_at")
   @@index([sequential_id], map: "idx_sequential_id")
+  @@index([defect], map: "idx_defect")
+  @@index([type], map: "idx_type")
 }
 
 model fence_alerts {
@@ -309,6 +315,7 @@ model monitor_applications {
   apis_id                                 Int
   is_alive                                Boolean           @default(true)
   is_alive_transition_notified_by_monitor Boolean           @default(false)
+  is_monitor_application_active           Boolean           @default(false)
   is_alive_transition_at                  DateTime          @default(now()) @db.DateTime(0)
   created_at                              DateTime          @default(now()) @db.DateTime(0)
   updated_at                              DateTime          @default(now()) @db.DateTime(0)
@@ -322,6 +329,7 @@ model monitor_applications {
   @@index([is_alive_transition_at], map: "idx_is_alive_transition_at")
   @@index([is_alive_transition_notified_by_monitor], map: "idx_is_alive_transition_notified_by_monitor")
   @@index([updated_at], map: "idx_updated_at")
+  @@index([is_monitor_application_active], map: "idx_is_monitor_application_active")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -344,8 +352,10 @@ model network_tracker_events {
 model network_tracker_hosts {
   id                     Int                      @id @default(autoincrement())
   ip                     String                   @unique(map: "ip") @db.VarChar(255)
+  description            String                   @db.VarChar(255)
   account_id             String                   @db.VarChar(255)
-  zone_id                String                   @db.VarChar(255)
+  partition_id           String                   @db.VarChar(255)
+  zone_id                String?                  @db.VarChar(255)
   consecutive_successes  Int                      @default(0)
   consecutive_failures   Int                      @default(0)
   is_alive               Boolean                  @default(true)
@@ -363,4 +373,46 @@ model network_tracker_hosts {
   @@index([is_alive_transition_at], map: "idx_is_alive_transition_at")
   @@index([updated_at], map: "idx_updated_at")
   @@index([zone_id], map: "idx_zone_id")
+  @@index([description], map: "idx_description")
+  @@index([partition_id], map: "idx_partition_id")
+}
+
+model controle_acesso_wpp {
+  id         Int                        @id @default(autoincrement())
+  data_json  Json
+  created_at DateTime                   @default(now())
+  updated_at DateTime                   @default(now())
+  status     controle_acesso_wpp_status @default(pendente)
+}
+
+model controle_acesso_wpp_sesmt {
+  id         Int                              @id @default(autoincrement())
+  data_json  Json
+  created_at DateTime                         @default(now())
+  updated_at DateTime                         @default(now())
+  status     controle_acesso_wpp_sesmt_status @default(pendente)
+}
+
+model ordens_servico_wpp {
+  id         Int                       @id @default(autoincrement())
+  data_json  Json
+  created_at DateTime                  @default(now())
+  updated_at DateTime                  @default(now())
+  status     ordens_servico_wpp_status @default(pendente)
+  id_os      Int?
+}
+
+enum controle_acesso_wpp_status {
+  pendente
+  aberta
+}
+
+enum controle_acesso_wpp_sesmt_status {
+  pendente
+  aberta
+}
+
+enum ordens_servico_wpp_status {
+  pendente
+  aberta
 }
