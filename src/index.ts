@@ -8,6 +8,18 @@ import { monitorApplicationsService } from './services/index.js';
 
 const MONITORING_INTERVAL = 60_000;
 
+const createSequentialInterval = async (
+  handler: () => Promise<void>, 
+  interval: number
+): Promise<void> => {
+  const executeWithDelay = async (): Promise<void> => {
+    await handler();
+    setTimeout(executeWithDelay, interval).unref();
+  };
+
+  executeWithDelay();
+};
+
 const buildServer = async (): Promise<void> => {
   try {
     const app = express();
@@ -52,9 +64,10 @@ const buildServer = async (): Promise<void> => {
     
     startServer(serverInstance as Express);
 
-    await monitorApplicationsService.monitorApplications();
-    
-    setInterval(monitorApplicationsService.monitorApplications, MONITORING_INTERVAL).unref();
+    await createSequentialInterval(
+      monitorApplicationsService.monitorApplications, 
+      MONITORING_INTERVAL
+    );
     
     schedule.scheduleJob(
       {

@@ -6,7 +6,7 @@ import { IMonitorApplication, IMonitorApplicationHealthMap, IMonitorApplicationM
 const API_GATEWAY_API_V1_GET_AUTHENTICATION_URL = `http://${ process.env.SERVER_IP as string }:3043/api/v1/get/authentication`;
 const API_GATEWAY_API_v1_GET_API_DATA_MAP_URL = `http://${ process.env.SERVER_IP as string }:3043/api/v1/get/api-data-map`;
 
-const REQUEST_TIMEOUT = 30_000;
+const REQUEST_TIMEOUT = 60_000;
 
 const prisma = new PrismaClient();
 
@@ -126,9 +126,7 @@ const formatMonitorApplicationInformation = (
   isAliveTransitionAt: Date
 ): string => {
   return Object.values(monitorApplicationHealthMap.data).reduce(
-    (accumulator: string, object: { name: string, value: unknown }): string => {
-      return `${ accumulator }\n- ${ object.name }: ${ object.value }`;
-    },
+    (accumulator: string, object: { name: string, value: unknown }): string => `${ accumulator }\n- ${ object.name }: ${ object.value }`,
     `[${ monitorApplication.application_type }]\n- Desde: ${ dateTimeFormatterUtil.formatDuration((momentTimezone().utc().toDate().getTime() - isAliveTransitionAt.getTime()) / 60_000) }`
   );
 };
@@ -202,10 +200,10 @@ const processMonitorApplication = async (
 };
 
 const sendMonitoringReport = async (
-  onlineMonitorApplicationMapList: string[], 
-  offlineMonitorApplicationMapList: string[]
+  monitorApplicationMapInformationOnlineList: string[], 
+  monitorApplicationMapInformationOfflineList: string[]
 ): Promise<void> => {
-  if (onlineMonitorApplicationMapList.length === 0 && offlineMonitorApplicationMapList.length === 0) {
+  if (monitorApplicationMapInformationOnlineList.length === 0 && monitorApplicationMapInformationOfflineList.length === 0) {
     return;
   }
 
@@ -213,10 +211,10 @@ const sendMonitoringReport = async (
 
   const messageList = [
     '📌 *MONITOR DE SERVIÇOS* 📌',
-    onlineMonitorApplicationMapList.length > 0  ? `\n\n🟢 *DISPONÍVEIS (${ onlineMonitorApplicationMapList.length })* 🟢\n\n${ onlineMonitorApplicationMapList.join('\n\n') }` : '',
-    offlineMonitorApplicationMapList.length > 0 ? `\n\n🔴 *INDISPONÍVEIS (${ offlineMonitorApplicationMapList.length })* 🔴\n\n${ offlineMonitorApplicationMapList.join('\n\n') }` : '',
+    monitorApplicationMapInformationOnlineList.length > 0  ? `\n\n🟢 *DISPONÍVEIS (${ monitorApplicationMapInformationOnlineList.length })* 🟢\n\n${ monitorApplicationMapInformationOnlineList.join('\n\n') }` : '',
+    monitorApplicationMapInformationOfflineList.length > 0 ? `\n\n🔴 *INDISPONÍVEIS (${ monitorApplicationMapInformationOfflineList.length })* 🔴\n\n${ monitorApplicationMapInformationOfflineList.join('\n\n') }` : '',
     `\n\n🌐 *Servidor:* ${ process.env.SERVER_IP as string }`,
-    `\n📊 *Total monitorado:* ${ onlineMonitorApplicationMapList.length + offlineMonitorApplicationMapList.length }`
+    `\n📊 *Total monitorado:* ${ monitorApplicationMapInformationOnlineList.length + monitorApplicationMapInformationOfflineList.length }`
   ];
   
   try {
@@ -241,10 +239,10 @@ export const monitorApplications = async (isPeriodicWarn?: boolean): Promise<voi
     const monitorApplicationList = await prisma.monitor_applications.findMany({ where: { is_monitor_application_active: true } });
     const monitorApplicationMapList = await Promise.all(monitorApplicationList.map(async (monitorApplication: IMonitorApplication.IMonitorApplication): Promise<IMonitorApplicationMap.IMonitorApplicationMap | null> => await processMonitorApplication(monitorApplication, isPeriodicWarn)));
     const monitorApplicationMapFilteredList = monitorApplicationMapList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap | null): boolean => monitorApplicationMap !== null) as IMonitorApplicationMap.IMonitorApplicationMap[];
-    const onlineMonitorApplicationMapList = monitorApplicationMapFilteredList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): boolean => monitorApplicationMap.isHealthy).map((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): string => monitorApplicationMap.information);
-    const offlineMonitorApplicationMapList = monitorApplicationMapFilteredList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): boolean => !monitorApplicationMap.isHealthy).map((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): string => monitorApplicationMap.information);
+    const monitorApplicationMapInformationOnlineList = monitorApplicationMapFilteredList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): boolean => monitorApplicationMap.isHealthy).map((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): string => monitorApplicationMap.information);
+    const monitorApplicationMapInformationOfflineList = monitorApplicationMapFilteredList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): boolean => !monitorApplicationMap.isHealthy).map((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): string => monitorApplicationMap.information);
     
-    await sendMonitoringReport(onlineMonitorApplicationMapList, offlineMonitorApplicationMapList);
+    await sendMonitoringReport(monitorApplicationMapInformationOnlineList, monitorApplicationMapInformationOfflineList);
   } catch (error: unknown) {
     console.log(`Error | Timestamp: ${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') } | Path: src/services/monitorApplications.service.ts | Location: monitorApplications | Error: ${ error instanceof Error ? error.message : String(error) }`);
   }
