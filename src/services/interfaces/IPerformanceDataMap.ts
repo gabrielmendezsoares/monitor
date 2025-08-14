@@ -1,4 +1,4 @@
 export interface IPerformanceDataMap {
-  response: any;
+  response?: any;
   elapsedMiliseconds: number;
 }

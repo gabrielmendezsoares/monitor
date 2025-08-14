@@ -5,7 +5,27 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = env("STORAGE_DATABASE_URL")
+  url      = env("STORAGE_DATABASE_URI")
+}
+
+model access_control_whitelisted_targets {
+  id                                          Int      @id @default(autoincrement())
+  account_id                                  String   @db.VarChar(10)
+  command_id                                  String   @db.VarChar(10)
+  reader_id                                   String   @db.VarChar(10)
+  receiver_id                                 String   @db.VarChar(10)
+  is_access_control_whitelisted_target_active Boolean  @default(false)
+  created_at                                  DateTime @default(now()) @db.DateTime(0)
+  updated_at                                  DateTime @default(now()) @db.DateTime(0)
+
+  @@unique([account_id, command_id, reader_id, receiver_id], map: "unique_account_id_command_id_reader_id_receiver_id")
+  @@index([account_id], map: "idx_account_id")
+  @@index([command_id], map: "idx_command_id")
+  @@index([created_at], map: "idx_created_at")
+  @@index([is_access_control_whitelisted_target_active], map: "idx_is_access_control_whitelisted_target_active")
+  @@index([reader_id], map: "idx_reader_id")
+  @@index([receiver_id], map: "idx_receiver_id")
+  @@index([updated_at], map: "idx_updated_at")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -113,9 +133,9 @@ model d_guard_layouts {
 
   @@unique([guid, d_guard_servers_id], map: "unique_guid_d_guard_servers_id")
   @@index([created_at], map: "idx_created_at")
+  @@index([d_guard_servers_id], map: "idx_d_guard_servers_id")
   @@index([guid], map: "idx_guid")
   @@index([updated_at], map: "idx_updated_at")
-  @@index([d_guard_servers_id], map: "idx_d_guard_servers_id")
 }
 
 model d_guard_servers {
@@ -145,9 +165,9 @@ model d_guard_workstations {
 
   @@unique([guid, d_guard_servers_id], map: "unique_guid_d_guard_servers_id")
   @@index([created_at], map: "idx_created_at")
+  @@index([d_guard_servers_id], map: "idx_d_guard_servers_id")
   @@index([guid], map: "idx_guid")
   @@index([updated_at], map: "idx_updated_at")
-  @@index([d_guard_servers_id], map: "idx_d_guard_servers_id")
 }
 
 model database_types {
@@ -184,6 +204,19 @@ model databases {
   @@index([updated_at], map: "idx_updated_at")
 }
 
+model fence_alerts {
+  id         Int      @id @default(autoincrement())
+  key        String   @unique(map: "key") @db.VarChar(255)
+  quantity   Int
+  created_at DateTime @default(now()) @db.DateTime(0)
+  updated_at DateTime @default(now()) @db.DateTime(0)
+
+  @@index([created_at], map: "idx_created_at")
+  @@index([key], map: "idx_key")
+  @@index([quantity], map: "idx_quantity")
+  @@index([updated_at], map: "idx_updated_at")
+}
+
 model grant_types {
   id         Int      @id @default(autoincrement())
   grant_type String   @unique(map: "grant_type") @db.VarChar(255)
@@ -207,6 +240,95 @@ model method_types {
   @@index([created_at], map: "idx_created_at")
   @@index([method_type], map: "idx_method_type")
   @@index([updated_at], map: "idx_updated_at")
+}
+
+model monitor_applications {
+  id                            Int               @id @default(autoincrement())
+  application_type              String            @unique(map: "application_type") @db.VarChar(255)
+  apis_id                       Int
+  response_map                  Json?
+  is_alive                      Boolean           @default(true)
+  is_monitor_application_active Boolean           @default(false)
+  is_alive_transition_at        DateTime          @default(now()) @db.DateTime(0)
+  created_at                    DateTime          @default(now()) @db.DateTime(0)
+  updated_at                    DateTime          @default(now()) @db.DateTime(0)
+  application_types             application_types @relation(fields: [application_type], references: [application_type], onDelete: Cascade, onUpdate: NoAction, map: "monitor_applications_ibfk_1")
+  apis                          apis              @relation(fields: [apis_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "monitor_applications_ibfk_2")
+
+  @@index([application_type], map: "idx_application_type")
+  @@index([created_at], map: "idx_created_at")
+  @@index([is_alive], map: "idx_is_alive")
+  @@index([is_alive_transition_at], map: "idx_is_alive_transition_at")
+  @@index([is_monitor_application_active], map: "idx_is_monitor_application_active")
+  @@index([updated_at], map: "idx_updated_at")
+  @@index([apis_id], map: "idx_api_gateway_apis_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model neppo_satisfaction_surveys {
+  id            Int      @id @default(autoincrement())
+  sequential_id String   @db.VarChar(255)
+  defect        String   @db.VarChar(255)
+  phone         String   @db.VarChar(255)
+  status        String   @db.VarChar(255)
+  type          String   @db.VarChar(255)
+  started_at    DateTime @db.DateTime(0)
+  created_at    DateTime @default(now()) @db.DateTime(0)
+  updated_at    DateTime @default(now()) @db.DateTime(0)
+
+  @@unique([sequential_id, type], map: "unique_sequential_id_type")
+  @@index([created_at], map: "idx_created_at")
+  @@index([defect], map: "idx_defect")
+  @@index([phone], map: "idx_phone")
+  @@index([sequential_id], map: "idx_sequential_id")
+  @@index([status], map: "idx_status")
+  @@index([type], map: "idx_type")
+  @@index([updated_at], map: "idx_updated_at")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model network_tracker_events {
+  id                       Int                   @id @default(autoincrement())
+  network_tracker_hosts_id Int
+  code                     String                @db.VarChar(255)
+  status                   String                @default("pending") @db.VarChar(255)
+  created_at               DateTime              @default(now()) @db.DateTime(0)
+  updated_at               DateTime              @default(now()) @db.DateTime(0)
+  network_tracker_hosts    network_tracker_hosts @relation(fields: [network_tracker_hosts_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "network_tracker_events_ibfk_1")
+
+  @@index([code], map: "idx_code")
+  @@index([created_at], map: "idx_created_at")
+  @@index([network_tracker_hosts_id], map: "idx_network_tracker_hosts_id")
+  @@index([status], map: "idx_status")
+  @@index([updated_at], map: "idx_updated_at")
+}
+
+model network_tracker_hosts {
+  id                     Int                      @id @default(autoincrement())
+  ip                     String                   @unique(map: "ip") @db.VarChar(255)
+  description            String                   @db.VarChar(255)
+  account_id             String                   @db.VarChar(255)
+  partition_id           String                   @db.VarChar(255)
+  zone_id                String?                  @db.VarChar(255)
+  consecutive_successes  Int                      @default(0)
+  consecutive_failures   Int                      @default(0)
+  is_alive               Boolean                  @default(true)
+  is_alive_transition_at DateTime                 @default(now()) @db.DateTime(0)
+  created_at             DateTime                 @default(now()) @db.DateTime(0)
+  updated_at             DateTime                 @default(now()) @db.DateTime(0)
+  network_tracker_events network_tracker_events[]
+
+  @@index([account_id], map: "idx_account_id")
+  @@index([consecutive_failures], map: "idx_consecutive_failures")
+  @@index([consecutive_successes], map: "idx_consecutive_successes")
+  @@index([created_at], map: "idx_created_at")
+  @@index([description], map: "idx_description")
+  @@index([ip], map: "idx_ip")
+  @@index([is_alive], map: "idx_is_alive")
+  @@index([is_alive_transition_at], map: "idx_is_alive_transition_at")
+  @@index([partition_id], map: "idx_partition_id")
+  @@index([updated_at], map: "idx_updated_at")
+  @@index([zone_id], map: "idx_zone_id")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -275,144 +397,27 @@ model users {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model neppo_satisfaction_surveys {
-  id            Int      @id @default(autoincrement())
-  sequential_id String   @db.VarChar(255)
-  defect        String   @db.VarChar(255)
-  phone         String   @db.VarChar(255)
-  status        String   @db.VarChar(255)
-  type          String   @db.VarChar(255)
-  started_at    DateTime @db.DateTime(0)
-  created_at    DateTime @default(now()) @db.DateTime(0)
-  updated_at    DateTime @default(now()) @db.DateTime(0)
+model access_control_whatsapp_events {
+  id                   Int      @id @default(autoincrement())
+  account              String   @db.VarChar(255)
+  code                 String   @db.VarChar(255)
+  company_id           String   @db.VarChar(255)
+  complement           String   @db.VarChar(255)
+  event_id             String   @db.VarChar(255)
+  protocol_type        String   @db.VarChar(255)
+  receiver_description String   @db.VarChar(255)
+  status               String   @db.VarChar(255)
+  created_at           DateTime @default(now()) @db.DateTime(0)
+  updated_at           DateTime @default(now()) @db.DateTime(0)
 
-  @@unique([sequential_id, type], map: "unique_sequential_id_type")
-  @@index([created_at], map: "idx_created_at")
-  @@index([phone], map: "idx_phone")
-  @@index([status], map: "idx_status")
-  @@index([updated_at], map: "idx_updated_at")
-  @@index([sequential_id], map: "idx_sequential_id")
-  @@index([defect], map: "idx_defect")
-  @@index([type], map: "idx_type")
-}
-
-model fence_alerts {
-  id         Int      @id @default(autoincrement())
-  key        String   @unique(map: "key") @db.VarChar(255)
-  quantity   Int
-  created_at DateTime @default(now()) @db.DateTime(0)
-  updated_at DateTime @default(now()) @db.DateTime(0)
-
-  @@index([created_at], map: "idx_created_at")
-  @@index([key], map: "idx_key")
-  @@index([quantity], map: "idx_quantity")
-  @@index([updated_at], map: "idx_updated_at")
-}
-
-model monitor_applications {
-  id                                      Int               @id @default(autoincrement())
-  application_type                        String            @unique(map: "application_type") @db.VarChar(255)
-  apis_id                                 Int
-  is_alive                                Boolean           @default(true)
-  is_alive_transition_notified_by_monitor Boolean           @default(false)
-  is_monitor_application_active           Boolean           @default(false)
-  is_alive_transition_at                  DateTime          @default(now()) @db.DateTime(0)
-  created_at                              DateTime          @default(now()) @db.DateTime(0)
-  updated_at                              DateTime          @default(now()) @db.DateTime(0)
-  application_types                       application_types @relation(fields: [application_type], references: [application_type], onDelete: Cascade, onUpdate: NoAction, map: "monitor_applications_ibfk_1")
-  apis                                    apis              @relation(fields: [apis_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "monitor_applications_ibfk_2")
-
-  @@index([apis_id], map: "idx_apis_id")
-  @@index([application_type], map: "idx_application_type")
-  @@index([created_at], map: "idx_created_at")
-  @@index([is_alive], map: "idx_is_alive")
-  @@index([is_alive_transition_at], map: "idx_is_alive_transition_at")
-  @@index([is_alive_transition_notified_by_monitor], map: "idx_is_alive_transition_notified_by_monitor")
-  @@index([updated_at], map: "idx_updated_at")
-  @@index([is_monitor_application_active], map: "idx_is_monitor_application_active")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model network_tracker_events {
-  id                       Int                   @id @default(autoincrement())
-  network_tracker_hosts_id Int
-  code                     String                @db.VarChar(255)
-  status                   String                @default("pending") @db.VarChar(255)
-  created_at               DateTime              @default(now()) @db.DateTime(0)
-  updated_at               DateTime              @default(now()) @db.DateTime(0)
-  network_tracker_hosts    network_tracker_hosts @relation(fields: [network_tracker_hosts_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "network_tracker_events_ibfk_1")
-
+  @@index([account], map: "idx_account")
   @@index([code], map: "idx_code")
+  @@index([company_id], map: "idx_company_id")
+  @@index([complement], map: "idx_complement")
   @@index([created_at], map: "idx_created_at")
-  @@index([network_tracker_hosts_id], map: "idx_network_tracker_hosts_id")
+  @@index([event_id], map: "idx_event_id")
+  @@index([protocol_type], map: "idx_protocol_type")
+  @@index([receiver_description], map: "idx_receiver_description")
   @@index([status], map: "idx_status")
   @@index([updated_at], map: "idx_updated_at")
-}
-
-model network_tracker_hosts {
-  id                     Int                      @id @default(autoincrement())
-  ip                     String                   @unique(map: "ip") @db.VarChar(255)
-  description            String                   @db.VarChar(255)
-  account_id             String                   @db.VarChar(255)
-  partition_id           String                   @db.VarChar(255)
-  zone_id                String?                  @db.VarChar(255)
-  consecutive_successes  Int                      @default(0)
-  consecutive_failures   Int                      @default(0)
-  is_alive               Boolean                  @default(true)
-  is_alive_transition_at DateTime                 @default(now()) @db.DateTime(0)
-  created_at             DateTime                 @default(now()) @db.DateTime(0)
-  updated_at             DateTime                 @default(now()) @db.DateTime(0)
-  network_tracker_events network_tracker_events[]
-
-  @@index([account_id], map: "idx_account_id")
-  @@index([consecutive_failures], map: "idx_consecutive_failures")
-  @@index([consecutive_successes], map: "idx_consecutive_successes")
-  @@index([created_at], map: "idx_created_at")
-  @@index([ip], map: "idx_ip")
-  @@index([is_alive], map: "idx_is_alive")
-  @@index([is_alive_transition_at], map: "idx_is_alive_transition_at")
-  @@index([updated_at], map: "idx_updated_at")
-  @@index([zone_id], map: "idx_zone_id")
-  @@index([description], map: "idx_description")
-  @@index([partition_id], map: "idx_partition_id")
-}
-
-model controle_acesso_wpp {
-  id         Int                        @id @default(autoincrement())
-  data_json  Json
-  created_at DateTime                   @default(now())
-  updated_at DateTime                   @default(now())
-  status     controle_acesso_wpp_status @default(pendente)
-}
-
-model controle_acesso_wpp_sesmt {
-  id         Int                              @id @default(autoincrement())
-  data_json  Json
-  created_at DateTime                         @default(now())
-  updated_at DateTime                         @default(now())
-  status     controle_acesso_wpp_sesmt_status @default(pendente)
-}
-
-model ordens_servico_wpp {
-  id         Int                       @id @default(autoincrement())
-  data_json  Json
-  created_at DateTime                  @default(now())
-  updated_at DateTime                  @default(now())
-  status     ordens_servico_wpp_status @default(pendente)
-  id_os      Int?
-}
-
-enum controle_acesso_wpp_status {
-  pendente
-  aberta
-}
-
-enum controle_acesso_wpp_sesmt_status {
-  pendente
-  aberta
-}
-
-enum ordens_servico_wpp_status {
-  pendente
-  aberta
 }

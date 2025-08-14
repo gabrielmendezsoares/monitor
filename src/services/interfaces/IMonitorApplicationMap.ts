@@ -1,4 +1,6 @@
+import { IMonitorApplicationMessageMap } from "./index.js";
+
 export interface IMonitorApplicationMap {
   isHealthy: boolean;
-  information: string;
+  messageMap: IMonitorApplicationMessageMap.IMonitorApplicationMessageMap;
 }

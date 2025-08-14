@@ -1,11 +1,13 @@
 import momentTimezone from 'moment-timezone';
+import { isDeepEqual, isObjectType } from 'remeda';
 import { PrismaClient } from '@prisma/client/storage/client.js';
-import { dateTimeFormatterUtil, HttpClientUtil, BasicAndBearerStrategy } from '../../expressium/src/index.js';
-import { IMonitorApplication, IMonitorApplicationHealthMap, IMonitorApplicationMap, IPerformanceDataMap } from './interfaces/index.js';
+import { InputJsonObject } from '@prisma/client/storage/runtime/library.js';
+import { HttpClientUtil, loggerUtil, BasicAndBearerStrategy } from '../../expressium/index.js';
+import { IMonitorApplication, IMonitorApplicationHealthMap, IMonitorApplicationMap, IMonitorApplicationMessageMap, IPerformanceDataMap, IProperty } from './interfaces/index.js';
 
-const API_GATEWAY_API_V1_GET_AUTHENTICATION_URL = `http://${ process.env.SERVER_IP as string }:3043/api/v1/get/authentication`;
-const API_GATEWAY_API_v1_GET_API_DATA_MAP_URL = `http://${ process.env.SERVER_IP as string }:3043/api/v1/get/api-data-map`;
-
+const SERVER_IP = process.env.SERVER_IP ?? '127.0.0.1';
+const API_GATEWAY_API_V1_GET_AUTHENTICATION_URL = `http://${ SERVER_IP }:3043/api/v1/get/authentication`;
+const API_GATEWAY_API_v1_GET_API_DATA_MAP_URL = `http://${ SERVER_IP }:3043/api/v1/get/api-data-map`;
 const REQUEST_TIMEOUT = 60_000;
 
 const prisma = new PrismaClient();
@@ -18,19 +20,13 @@ const measureExecutionTime = async (
   
   try {
     const response = await handler(...argumentList);
-    const elapsedMiliseconds = Math.round(performance.now() - startTime);
     
     return { 
       response, 
-      elapsedMiliseconds 
+      elapsedMiliseconds: Math.round(performance.now() - startTime)
     };
-  } catch (error: unknown) {
-    const elapsedMiliseconds = Math.round(performance.now() - startTime);
-    
-    return { 
-      response: undefined, 
-      elapsedMiliseconds
-    };
+  } catch {
+    return { elapsedMiliseconds: Math.round(performance.now() - startTime) };
   }
 };
 
@@ -54,98 +50,168 @@ const fetchMonitorApplicationHealthMap = async (monitorApplication: IMonitorAppl
   const { 
     response, 
     elapsedMiliseconds 
-  } = await measureExecutionTime((): Promise<Axios.AxiosXHR<unknown>> => httpClientInstance.post(API_GATEWAY_API_v1_GET_API_DATA_MAP_URL, { filterMap: { id: monitorApplication.apis_id } }, { timeout: REQUEST_TIMEOUT }));
+  } = await measureExecutionTime(
+    (): Promise<Axios.AxiosXHR<unknown>> => {
+      return httpClientInstance.post(
+        API_GATEWAY_API_v1_GET_API_DATA_MAP_URL, 
+        { filterMap: { id: monitorApplication.apis_id } }, 
+        { timeout: REQUEST_TIMEOUT }
+      )
+    }
+  );
+
+  const defaultRetentionMap = {
+    responseTime: {
+      name: 'Tempo de resposta',
+      value: `${ elapsedMiliseconds.toFixed(1) }ms`
+    }
+  };
 
   if (!response?.data?.status) {
     return { 
       isHealthy: false,
-      data : {
-        responseTime: {
-          name: 'Tempo de resposta',
-          value: `${ elapsedMiliseconds.toFixed(1) }ms`
-        }
-      }
+      propertyRetentionMap: defaultRetentionMap
     };
   }
 
   const api = await prisma.apis.findUnique({ where: { id: monitorApplication.apis_id } });
-  
-  if (!api) {
-    return { 
-      isHealthy: false,
-      data : {
-        responseTime: {
-          name: 'Tempo de resposta',
-          value: `${ elapsedMiliseconds.toFixed(1) }ms`
-        }
-      }
-    };
-  }
+  const subResponse = api ? response.data?.data?.[api.name] : null;
+  const subResponseDataMonitor = subResponse?.data?.monitor as Record<string, IProperty.IProperty> | undefined;
 
-  const subResponse = response.data?.data?.[api.name];
-
-  if (!subResponse) {
-    return { 
-      isHealthy: false,
-      data : {
-        responseTime: {
-          name: 'Tempo de resposta',
-          value: `${ elapsedMiliseconds.toFixed(1) }ms`
-        }
-      }
-    };
-  }
-  
-  if (!subResponse.monitor) {
+  if (!isObjectType(subResponseDataMonitor)) {
     return { 
       isHealthy: subResponse.status,
-      data : {
-        responseTime: {
-          name: 'Tempo de resposta',
-          value: `${ elapsedMiliseconds.toFixed(1) }ms`
-        }
-      }
+      propertyRetentionMap: defaultRetentionMap
     };
   }
+
+  const monitorApplicationResponseMap = monitorApplication.response_map as Record<string, IProperty.IProperty> | null;
+  const subResponseDataMonitorKeySet = new Set(Object.keys(subResponseDataMonitor));
+  const monitorApplicationResponseMapKeySet = monitorApplicationResponseMap ? new Set(Object.keys(monitorApplicationResponseMap)) : null;
+  const propertyAddedMap: Record<string, IProperty.IProperty> = {};
+  const propertyModifiedMap: Record<string, IProperty.IProperty> = {};
+  
+  subResponseDataMonitorKeySet.forEach(
+    (key: string): void => {
+      const newProperty = subResponseDataMonitor[key];
+
+      if (!monitorApplicationResponseMapKeySet?.has(key)) {
+        propertyAddedMap[key] = newProperty;
+      } else if (
+        isObjectType(newProperty) &&
+        newProperty.value !== undefined &&
+        newProperty.isListeningModifiedEvent
+      ) {
+        const oldProperty = monitorApplicationResponseMap?.[key];
+      
+        if (
+          isObjectType(newProperty.value) && 
+          isObjectType(oldProperty?.value)
+            ? !isDeepEqual(newProperty.value, oldProperty.value)
+            : newProperty.value !== oldProperty?.value
+        ) {
+          propertyModifiedMap[key] = newProperty;
+        }
+      }
+    }
+  );
+
+  const propertyRemovedSet = new Set<string>();
+
+  monitorApplicationResponseMapKeySet?.forEach(
+    (key: string): void => {
+      if (!subResponseDataMonitorKeySet.has(key)) {
+        propertyRemovedSet.add(key);
+      }
+    }
+  );
+
+  const propertyRetentionMap: Record<string, IProperty.IProperty> = {
+    ...Object.fromEntries(
+      [...subResponseDataMonitorKeySet]
+        .filter((key: string): boolean => !propertyAddedMap[key] && !propertyModifiedMap[key] && !propertyRemovedSet.has(key))
+        .map((key: string): [string, IProperty.IProperty] => [key, subResponseDataMonitor[key]])
+    ),
+    ...defaultRetentionMap
+  };
 
   return { 
     isHealthy: true,
-    data : {
-      ...subResponse.monitor,
-      responseTime: {
-        name: 'Tempo de resposta',
-        value: `${ elapsedMiliseconds.toFixed(1) }ms`
-      }
-    }
+    responseMap: subResponseDataMonitor,
+    propertyAddedMap,
+    propertyModifiedMap,
+    propertyRemovedSet,
+    propertyRetentionMap
   };
 };
 
-const formatMonitorApplicationInformation = (
-  monitorApplication: IMonitorApplication.IMonitorApplication, 
-  monitorApplicationHealthMap: IMonitorApplicationHealthMap.IMonitorApplicationHealthMap,
-  isAliveTransitionAt: Date
-): string => {
-  return Object.values(monitorApplicationHealthMap.data).reduce(
-    (accumulator: string, object: { name: string, value: unknown }): string => `${ accumulator }\n- ${ object.name }: ${ object.value }`,
-    `[${ monitorApplication.application_type }]\n- Desde: ${ dateTimeFormatterUtil.formatDuration((momentTimezone().utc().toDate().getTime() - isAliveTransitionAt.getTime()) / 60_000) }`
-  );
-};
-
-const updateMonitorApplicationAliveStatus = async (
+const updateMonitorApplication = async (
   monitorApplication: IMonitorApplication.IMonitorApplication, 
   isAlive: boolean, 
-  isAliveTransitionAt: Date
-): Promise<IMonitorApplication.IMonitorApplication> => {
-  return prisma.monitor_applications.update(
+  isAliveTransitionAt: Date,
+  updatedAt: Date,
+  responseMap?: InputJsonObject
+): Promise<void> => {
+  await prisma.monitor_applications.update(
     {
       where: { id: monitorApplication.id },
       data: {
+        response_map: responseMap,
         is_alive: isAlive,
-        is_alive_transition_notified_by_monitor: true,
-        is_alive_transition_at: isAliveTransitionAt
+        is_alive_transition_at: isAliveTransitionAt,
+        updated_at: updatedAt
       }
     }
   );
+};
+
+const formatDuration = (totalMinutes: number): string => {
+  totalMinutes = Math.floor(totalMinutes);
+
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes / 60) % 24);
+  const minutes = Math.floor(totalMinutes % 60);
+
+  const partList = [
+    days > 0 && `${ days }d`,
+    hours > 0 && `${ hours }h`,
+    minutes > 0 && `${ minutes }m`
+  ].filter(Boolean);
+
+  return partList.length ? partList.join(" ") : "0m";
+};
+
+const formatMonitorApplicationMessageMap = (
+  monitorApplication: IMonitorApplication.IMonitorApplication, 
+  monitorApplicationHealthMap: IMonitorApplicationHealthMap.IMonitorApplicationHealthMap,
+  isAliveTransitionAt?: Date
+): IMonitorApplicationMessageMap.IMonitorApplicationMessageMap => {
+  const messagePrefix = `[${ monitorApplication.application_type }]`;
+
+  const propertyRetentionMessagePrefix = isAliveTransitionAt 
+    ? `${ messagePrefix }\n~ Desde: _${ formatDuration((momentTimezone().utc().toDate().getTime() - isAliveTransitionAt.getTime()) / 60_000) }_` 
+    : messagePrefix;
+
+  return {
+    propertyAddedMessage: monitorApplicationHealthMap.propertyAddedMap && Object.keys(monitorApplicationHealthMap.propertyAddedMap).length
+      ? Object
+          .values(monitorApplicationHealthMap.propertyAddedMap)
+          .reduce((accumulator: string, property: IProperty.IProperty): string => `${ accumulator }\n+ ${ property.name }: _${ property.value }_`, messagePrefix)
+      : undefined,
+    propertyModifiedMessage: monitorApplicationHealthMap.propertyModifiedMap && Object.keys(monitorApplicationHealthMap.propertyModifiedMap).length
+      ? Object
+          .values(monitorApplicationHealthMap.propertyModifiedMap)
+          .reduce((accumulator: string, property: IProperty.IProperty): string => `${ accumulator }\n~ ${ property.name }: _${ property.value }_`, messagePrefix)
+      : undefined,
+    propertyRemovedMessage: monitorApplicationHealthMap.propertyRemovedSet && monitorApplicationHealthMap.propertyRemovedSet.size
+      ? Array
+          .from(monitorApplicationHealthMap.propertyRemovedSet)
+          .reduce((accumulator: string, name: string): string => `${ accumulator }\n- ${ name }`, messagePrefix)
+      : undefined,
+    propertyRetentionMessage: Object
+      .values(monitorApplicationHealthMap.propertyRetentionMap)
+      .reduce((accumulator: string, property: IProperty.IProperty): string => `${ accumulator }\n= ${ property.name }: _${ property.value }_`, propertyRetentionMessagePrefix)
+  };
 };
 
 const processMonitorApplication = async (
@@ -154,96 +220,130 @@ const processMonitorApplication = async (
 ): Promise<IMonitorApplicationMap.IMonitorApplicationMap | null> => {
   try {
     const monitorApplicationHealthMap = await fetchMonitorApplicationHealthMap(monitorApplication);
+    const isAliveTransitioned = monitorApplicationHealthMap.isHealthy !== monitorApplication.is_alive;
+    const hasPropertyAdded = !!(monitorApplicationHealthMap.propertyAddedMap && Object.keys(monitorApplicationHealthMap.propertyAddedMap).length);
+    const hasPropertyModified = !!(monitorApplicationHealthMap.propertyModifiedMap && Object.keys(monitorApplicationHealthMap.propertyModifiedMap).length);
+    const hasPropertyRemoved = !!(monitorApplicationHealthMap.propertyRemovedSet && monitorApplicationHealthMap.propertyRemovedSet.size);
 
-    let monitorApplicationMap = null;
-    
-    if (isPeriodicWarn) {
-      monitorApplicationMap = { 
-        isHealthy: monitorApplication.is_alive, 
-        information: formatMonitorApplicationInformation(monitorApplication, monitorApplicationHealthMap, monitorApplication.is_alive_transition_at) 
-      };
-    } else {
-      if (monitorApplicationHealthMap.isHealthy && !monitorApplication.is_alive) {
-        const isAliveTransitionAt = momentTimezone().utc().toDate();
+    if (
+      isPeriodicWarn ||
+      isAliveTransitioned || 
+      hasPropertyAdded ||
+      hasPropertyModified ||
+      hasPropertyRemoved
+    ) {
+      let isHealthy = monitorApplication.is_alive;
+      let isAliveTransitionAt = monitorApplication.is_alive_transition_at;
+
+      const updatedAt = momentTimezone().utc().toDate();
   
-        await updateMonitorApplicationAliveStatus(monitorApplication, true, isAliveTransitionAt);
-  
-        monitorApplicationMap = { 
-          isHealthy: true, 
-          information: formatMonitorApplicationInformation(monitorApplication, monitorApplicationHealthMap, isAliveTransitionAt)
-        };
-      } else if (!monitorApplicationHealthMap.isHealthy && monitorApplication.is_alive) {
-        const isAliveTransitionAt = momentTimezone().utc().toDate();
-  
-        await updateMonitorApplicationAliveStatus(monitorApplication, false, isAliveTransitionAt);
-  
-        monitorApplicationMap = { 
-          isHealthy: false, 
-          information: formatMonitorApplicationInformation(monitorApplication, monitorApplicationHealthMap, isAliveTransitionAt)
-        };
-      } else if (!monitorApplication.is_alive_transition_notified_by_monitor) {
-        await updateMonitorApplicationAliveStatus(monitorApplication, monitorApplication.is_alive, monitorApplication.is_alive_transition_at);
-  
-        monitorApplicationMap = { 
-          isHealthy: monitorApplication.is_alive, 
-          information: formatMonitorApplicationInformation(monitorApplication, monitorApplicationHealthMap, monitorApplication.is_alive_transition_at) 
-        };
+      if (isAliveTransitioned) {
+        isHealthy = monitorApplicationHealthMap.isHealthy;
+        isAliveTransitionAt = isAliveTransitioned ? updatedAt : monitorApplication.is_alive_transition_at;
       }
+
+      await updateMonitorApplication(
+        monitorApplication, 
+        isHealthy, 
+        isAliveTransitionAt,
+        updatedAt,
+        monitorApplicationHealthMap.responseMap as InputJsonObject | undefined
+      );
+
+      return {
+        isHealthy,
+        messageMap: formatMonitorApplicationMessageMap(
+          monitorApplication,
+          monitorApplicationHealthMap,
+          isAliveTransitioned ? isAliveTransitionAt : undefined
+        )
+      };
     }
-    
-    return monitorApplicationMap;
+
+    return null;
   } catch (error: unknown) {
-    console.log(`Error | Timestamp: ${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') } | Path: src/services/monitorApplications.service.ts | Location: processMonitorApplication | Error: ${ error instanceof Error ? error.message : String(error) }`);
+    loggerUtil.error(error instanceof Error ? error.message : String(error));
    
     return null;
   }
 };
 
-const sendMonitoringReport = async (
-  monitorApplicationMapInformationOnlineList: string[], 
-  monitorApplicationMapInformationOfflineList: string[]
+const sendApplicationMonitoringReport = async ( 
+  serviceOnlineMessageList: string[],
+  serviceOfflineMessageList: string[],
+  propertyAddedMessageList: string[], 
+  propertyModifiedMessageList: string[],
+  propertyRemovedMessageList: string[]
 ): Promise<void> => {
-  if (monitorApplicationMapInformationOnlineList.length === 0 && monitorApplicationMapInformationOfflineList.length === 0) {
+  if (
+    !serviceOnlineMessageList.length &&
+    !serviceOfflineMessageList.length &&
+    !propertyAddedMessageList.length &&
+    !propertyModifiedMessageList.length &&
+    !propertyRemovedMessageList.length
+  ) {
     return;
   }
 
   const httpClientInstance = new HttpClientUtil.HttpClient();
 
-  const messageList = [
+  const message = [
     '📌 *MONITOR DE SERVIÇOS* 📌',
-    monitorApplicationMapInformationOnlineList.length > 0  ? `\n\n🟢 *DISPONÍVEIS (${ monitorApplicationMapInformationOnlineList.length })* 🟢\n\n${ monitorApplicationMapInformationOnlineList.join('\n\n') }` : '',
-    monitorApplicationMapInformationOfflineList.length > 0 ? `\n\n🔴 *INDISPONÍVEIS (${ monitorApplicationMapInformationOfflineList.length })* 🔴\n\n${ monitorApplicationMapInformationOfflineList.join('\n\n') }` : '',
-    `\n\n🌐 *Servidor:* ${ process.env.SERVER_IP as string }`,
-    `\n📊 *Total monitorado:* ${ monitorApplicationMapInformationOnlineList.length + monitorApplicationMapInformationOfflineList.length }`
-  ];
+    serviceOnlineMessageList.length > 0  && `\n\n⚡ *SERVIÇO ONLINE (${ serviceOnlineMessageList.length })* ⚡\n\n${ serviceOnlineMessageList.join('\n\n') }`,
+    serviceOfflineMessageList.length > 0 && `\n\n💤 *SERVIÇO OFFLINE (${ serviceOfflineMessageList.length })* 💤\n\n${ serviceOfflineMessageList.join('\n\n') }`,
+    propertyAddedMessageList.length > 0 && `\n\n🔼 *PROP. ADICIONADA (${ propertyAddedMessageList.length })* 🔼\n\n${ propertyAddedMessageList.join('\n\n') }`,
+    propertyModifiedMessageList.length > 0 && `\n\n🔄 *PROP. MODIFICADA (${ propertyModifiedMessageList.length })* 🔄\n\n${ propertyModifiedMessageList.join('\n\n') }`,
+    propertyRemovedMessageList.length > 0 && `\n\n🔽 *PROP. REMOVIDA (${ propertyRemovedMessageList.length })* 🔽\n\n${ propertyRemovedMessageList.join('\n\n') }`,
+    `\n\n🌐 *Servidor*: _${ SERVER_IP }_`
+  ].filter(Boolean).join('');
   
-  try {
-    await httpClientInstance.post(
-      `https://v5.chatpro.com.br/${ process.env.CHAT_PRO_INSTANCE_ID }/api/v1/send_message`,
-      {
-        message: messageList.join(''),
-        number: process.env.CHAT_PRO_NUMBER
-      },
-      { 
-        headers: { Authorization: process.env.CHAT_PRO_BEARER_TOKEN },
-        params: { instance_id: process.env.CHAT_PRO_INSTANCE_ID }
-      }
-    );
-  } catch (error: unknown) {
-    console.log(`Error | Timestamp: ${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') } | Path: src/services/monitorApplications.service.ts | Location: sendMonitoringReport | Error: ${ error instanceof Error ? error.message : String(error) }`);
-  }
+  await httpClientInstance.post(
+    `https://v5.chatpro.com.br/${ process.env.CHAT_PRO_INSTANCE_ID }/api/v1/send_message`,
+    {
+      message: message,
+      number: process.env.CHAT_PRO_NUMBER
+    },
+    { 
+      headers: { Authorization: process.env.CHAT_PRO_BEARER_TOKEN },
+      params: { instance_id: process.env.CHAT_PRO_INSTANCE_ID }
+    }
+  );
 };
 
 export const monitorApplications = async (isPeriodicWarn?: boolean): Promise<void> => {
   try {
     const monitorApplicationList = await prisma.monitor_applications.findMany({ where: { is_monitor_application_active: true } });
-    const monitorApplicationMapList = await Promise.all(monitorApplicationList.map(async (monitorApplication: IMonitorApplication.IMonitorApplication): Promise<IMonitorApplicationMap.IMonitorApplicationMap | null> => await processMonitorApplication(monitorApplication, isPeriodicWarn)));
+    const monitorApplicationMapList = await Promise.all(monitorApplicationList.map((monitorApplication: IMonitorApplication.IMonitorApplication): Promise<IMonitorApplicationMap.IMonitorApplicationMap | null> => processMonitorApplication(monitorApplication, isPeriodicWarn)));
     const monitorApplicationMapFilteredList = monitorApplicationMapList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap | null): boolean => monitorApplicationMap !== null) as IMonitorApplicationMap.IMonitorApplicationMap[];
-    const monitorApplicationMapInformationOnlineList = monitorApplicationMapFilteredList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): boolean => monitorApplicationMap.isHealthy).map((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): string => monitorApplicationMap.information);
-    const monitorApplicationMapInformationOfflineList = monitorApplicationMapFilteredList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): boolean => !monitorApplicationMap.isHealthy).map((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): string => monitorApplicationMap.information);
-    
-    await sendMonitoringReport(monitorApplicationMapInformationOnlineList, monitorApplicationMapInformationOfflineList);
+    const serviceOnlineMessageList: string[] = [];
+    const serviceOfflineMessageList: string[] = [];
+    const propertyAddedMessageList: string[] = [];
+    const propertyModifiedMessageList: string[] = [];
+    const propertyRemovedMessageList: string[] = [];
+
+    monitorApplicationMapFilteredList.forEach(
+      (monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap): void => {
+        const monitorApplicationMapMessageMap = monitorApplicationMap.messageMap;
+  
+        if (monitorApplicationMap.isHealthy) {
+          serviceOnlineMessageList.push(monitorApplicationMapMessageMap.propertyRetentionMessage);
+          monitorApplicationMapMessageMap.propertyAddedMessage && propertyAddedMessageList.push(monitorApplicationMapMessageMap.propertyAddedMessage);
+          monitorApplicationMapMessageMap.propertyModifiedMessage && propertyModifiedMessageList.push(monitorApplicationMapMessageMap.propertyModifiedMessage);
+          monitorApplicationMapMessageMap.propertyRemovedMessage && propertyRemovedMessageList.push(monitorApplicationMapMessageMap.propertyRemovedMessage);
+        } else {
+          serviceOfflineMessageList.push(monitorApplicationMapMessageMap.propertyRetentionMessage);
+        }
+      }
+    );
+
+    sendApplicationMonitoringReport(
+      serviceOnlineMessageList,
+      serviceOfflineMessageList,
+      propertyAddedMessageList, 
+      propertyModifiedMessageList,
+      propertyRemovedMessageList
+    );
   } catch (error: unknown) {
-    console.log(`Error | Timestamp: ${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') } | Path: src/services/monitorApplications.service.ts | Location: monitorApplications | Error: ${ error instanceof Error ? error.message : String(error) }`);
+    loggerUtil.error(error instanceof Error ? error.message : String(error));
   }
 };
