@@ -13,18 +13,17 @@
     "useDefineForClassFields": true,
     "allowJs": true,
     "checkJs": true,
-    "resolveJsonModule": false,
+    "resolveJsonModule": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "incremental": true,
-    "noEmit": false,
     "skipLibCheck": true
   },
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node"
   },
-  "include": ["**/*.js", "**/*.ts"],
-  "exclude": ["dist", "node_modules", "logs", "scripts", "**/*.spec.ts", "**/*.log", "**/*.pem"]
+  "include": ["expressium/**/*", "src/**/*"],
+  "exclude": ["**.js", "**.d.ts"]
 }

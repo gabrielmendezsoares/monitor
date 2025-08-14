@@ -7,9 +7,9 @@ WORKDIR /app
 
 RUN chown -R nodeuser:nodejs /app
 
-COPY --chown=nodeuser:nodejs package*.json ./
 COPY --chown=nodeuser:nodejs prisma/ ./prisma/
 COPY --chown=nodeuser:nodejs scripts/ ./scripts/
+COPY --chown=nodeuser:nodejs package*.json ./
 
 USER nodeuser
 

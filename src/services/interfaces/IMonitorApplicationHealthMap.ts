@@ -1,9 +1,10 @@
+import { IProperty } from './index.js';
+
 export interface IMonitorApplicationHealthMap {
   isHealthy: boolean;
-  data: {
-    responseTime: {
-      name: string;
-      value: string;
-    };
-  };
+  responseMap?: Record<string, IProperty.IProperty>;
+  propertyAddedMap?: Record<string, IProperty.IProperty>;
+  propertyModifiedMap?: Record<string, IProperty.IProperty>;
+  propertyRemovedSet?: Set<string>;
+  propertyRetentionMap: Record<string, IProperty.IProperty>;
 }

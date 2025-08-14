@@ -1,0 +1,371 @@
+openapi: 3.0.3
+info:
+  title: 🖥️ Monitor
+  version: 2.0.0
+  description: |
+    ## 📋 Overview
+
+    Monitor is a modular observability system designed to track the health and performance of applications through their exposed endpoints. It continuously collects, analyzes, and formats status data from multiple services, offering flexible reporting options that suit different operational needs.
+
+    The system supports multiple output channels, including WhatsApp notifications, JSON API responses, and custom report formats. Its architecture is built for adaptability — whether running standalone or integrated into broader monitoring pipelines, Monitor provides a reliable, centralized view of system health across environments.
+
+    ### 🎯 Objectives
+
+    - Continuously monitor application health endpoints
+    - Group and format data for flexible consumption
+    - Deliver reports via various channels (e.g., WhatsApp, HTTP endpoints)
+    - Enable integration with third-party systems and dashboards
+    - Provide visibility into system uptime, latency, and failures
+servers:
+  - url: http://localhost:3771
+    description: Development server
+security:
+  - Bearer: []
+components:
+  securitySchemes:
+    Basic:
+      type: http
+      scheme: basic
+      description: Basic authentication using username and password
+    Bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer authentication using JWT token
+  schemas:
+    IResponseData:
+      type: object
+      required:
+        - message
+        - suggestion
+      properties:
+        message:
+          type: string
+          description: Human-readable error message
+        suggestion:
+          type: string
+          description: Suggested action to resolve the error
+    IGetAuthenticationResponseData:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - username
+            - roleList
+            - token
+            - expiresIn
+          properties:
+            username:
+              type: string
+              description: Username of the authenticated user.
+              example: "john.doe"
+            roleList:
+              type: array
+              items:
+                type: string
+              description: Roles or permissions assigned to the user.
+              example: ["admin", "user"]
+            token:
+              type: string
+              description: Signed JWT token for subsequent authenticated requests.
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            expiresIn:
+              type: integer
+              format: int64
+              description: Token expiration time in milliseconds.
+              example: 1726080123123
+    IGetHealthResponseData:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - cpuUsage
+            - memoryUsage
+            - port
+            - testCoverage
+            - logLevel
+          properties:
+            cpuUsage:
+              type: object
+              required:
+                - name
+                - value
+              properties:
+                name:
+                  type: string
+                  description: Label for CPU usage metric.
+                  example: "Uso de CPU"
+                value:
+                  type: string
+                  description: Value of CPU usage.
+                  example: "8.1%"
+                isListeningModifiedEvent:
+                  type: boolean
+                  description: If monitor should listen for modification events.
+                  example: false
+            memoryUsage:
+              type: object
+              required:
+                - name
+                - value
+              properties:
+                name:
+                  type: string
+                  description: Label for memory usage metric.
+                  example: "Uso de memória"
+                value:
+                  type: string
+                  description: Value of memory usage.
+                  example: "8.1MB"
+                isListeningModifiedEvent:
+                  type: boolean
+                  description: If monitor should listen for modification events.
+                  example: false
+            port:
+              type: object
+              required:
+                - name
+                - value
+              properties:
+                name:
+                  type: string
+                  description: Label indicating which port the application is running on.
+                  example: "Porta"
+                value:
+                  type: string
+                  description: Port number the application is currently using.
+                  example: "3000"
+                isListeningModifiedEvent:
+                  type: boolean
+                  description: If monitor should listen for modification events.
+                  example: true
+            testCoverage:
+              type: object
+              required:
+                - name
+                - value
+              properties:
+                name:
+                  type: string
+                  description: Label for test coverage metric.
+                  example: "Cobertura de testes"
+                value:
+                  type: string
+                  description: Value of test coverage.
+                  example: "100%"
+                isListeningModifiedEvent:
+                  type: boolean
+                  description: If monitor should listen for modification events.
+                  example: false
+            logLevel:
+              type: object
+              required:
+                - name
+                - value
+              properties:
+                name:
+                  type: string
+                  description: Label indicating the current logging level.
+                  example: "Nível de log"
+                value:
+                  type: string
+                  description: Current log level set for the application.
+                  example: "info"
+                isListeningModifiedEvent:
+                  type: boolean
+                  description: If monitor should listen for modification events.
+                  example: true
+tags:
+  - name: Application
+    description: Core system operations including authentication, health monitoring, and system management
+paths:
+  /api/v1/get/authentication:
+    get:
+      tags:
+        - Application
+      summary: Authenticate user and issue JWT token
+      description: |
+        Authenticates a user via Basic Authentication and issues a signed JWT token upon successful validation.
+        A request was made on it to verify credentials and generate an access token for authorized usage.
+      security:
+        - Basic: []
+      responses:
+        '200':
+          description: The request was successfully received, understood, and processed. A valid response was generated based on the request made on it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IGetAuthenticationResponseData'
+              example:
+                data:
+                  username: "john.doe"
+                  roleList: ["admin", "user"]
+                  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  expiresIn: 1726080123123
+        '400':
+          description: The server could not process the request due to invalid syntax, malformed data, or missing parameters. Although there was a request on it, the client must correct the request before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IResponseData'
+              examples:
+                example_1:
+                  summary: Authorization header required for secure access
+                  value:
+                    message: "Authorization header required for secure access."
+                    suggestion: "Include an Authorization header using the Basic scheme: \"Basic base64(username:password)\"."
+                example_2:
+                  summary: Authorization must use Basic authentication scheme
+                  value:
+                    message: "Authorization must use Basic authentication scheme."
+                    suggestion: "Use the Basic authentication scheme: \"Basic base64(username:password)\"."
+        '401':
+          description: The request was received and a request was made on it, but the client failed to provide valid authentication credentials. Access is denied until proper authentication is provided.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IResponseData'
+              examples:
+                example_1:
+                  summary: Invalid username
+                  value:
+                    message: "Invalid username."
+                    suggestion: "Ensure the username is correct or register for an account if you don’t have one."
+                example_2:
+                  summary: Incorrect password
+                  value:
+                    message: "Incorrect password."
+                    suggestion: "Double-check your password or reset it if you’ve forgotten it."
+        '403':
+          description: Account is inactive.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IResponseData'
+              example:
+                message: "Account is inactive."
+                suggestion: "Contact your administrator to request account reactivation."
+        '500':
+          description: Authentication process encountered a technical issue.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IResponseData'
+              example:
+                message: "Authentication process encountered a technical issue."
+                suggestion: "Please try again later or contact support if the issue persists."
+  /api/v1/get/health:
+    get:
+      tags:
+        - Application
+      summary: Retrieve application health metrics
+      description: |
+        Returns current system health indicators such as CPU and memory usage.
+        A request was made on it to monitor the application’s operational status in real time.
+      responses:
+        '200':
+          description: The request was successfully received, understood, and processed. A valid response was generated based on the request made on it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IGetHealthResponseData'
+              example:
+                data:
+                  cpuUsage:
+                    name: "Uso de CPU"
+                    value: "8.1%"
+                  memoryUsage:
+                    name: "Uso de memória"
+                    value: "8.1MB"
+                  port:
+                    name: "Porta"
+                    value: "3000"
+                    isListeningModifiedEvent: true
+                  testCoverage:
+                    name: 'Cobertura de testes'
+                    value: '100%'
+                  logLevel:
+                    name: "Nível de log"
+                    value: "info"
+                    isListeningModifiedEvent: true
+        '400':
+          description: The server could not process the request due to invalid syntax, malformed data, or missing parameters. Although there was a request on it, the client must correct the request before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IResponseData'
+              examples:
+                example_1:
+                  summary: Missing Authorization header
+                  value:
+                    message: "Missing Authorization header."
+                    suggestion: "Include an Authorization header using the Bearer scheme: \"Bearer <token>\"."
+                example_2:
+                  summary: Invalid Authorization scheme
+                  value:
+                    message: "Invalid Authorization scheme."
+                    suggestion: "Use the Bearer authentication scheme: \"Bearer <token>\"."
+        '401':
+          description: The request was received and a request was made on it, but the client failed to provide valid authentication credentials. Access is denied until proper authentication is provided.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IResponseData'
+              examples:
+                example_1:
+                  summary: Authentication token has expired
+                  value:
+                    message: "Authentication token has expired."
+                    suggestion: "Please sign in again to obtain a new token."
+                example_2:
+                  summary: Invalid authentication token
+                  value:
+                    message: "Invalid authentication token."
+                    suggestion: "Ensure your token is valid and has not been tampered with."
+                example_3:
+                  summary: Authentication token is not yet active
+                  value:
+                    message: "Authentication token is not yet active."
+                    suggestion: "Wait until the token’s start time before using it."
+                example_4:
+                  summary: Authentication token has expired
+                  value:
+                    message: "Authentication token has expired."
+                    suggestion: "Please sign in again to obtain a new token."
+        '403':
+          description: Missing required role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IResponseData'
+              example:
+                message: "Missing required role."
+                suggestion: "If you believe this is an error, contact your administrator to request appropriate access."    
+        '500':
+          description: The server encountered an unexpected error while processing the request. A request was made on it, but the server failed to complete the operation due to an internal issue.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IResponseData'
+              examples:
+                example_1:
+                  summary: The authorization process is temporarily unavailable
+                  value:
+                    message: "The authorization process is temporarily unavailable."
+                    suggestion: "Please try again later or contact support if the issue persists."
+                example_2:
+                  summary: The authorization process encountered a technical issue
+                  value:
+                    message: "The authorization process encountered a technical issue."
+                    suggestion: "Please try again later or contact support if the issue persists."
+                example_3:
+                  summary: The health diagnostic process encountered a technical issue
+                  value:
+                    message: "The health diagnostic process encountered a technical issue."
+                    suggestion: "Please try again later or contact support if the issue persists."
