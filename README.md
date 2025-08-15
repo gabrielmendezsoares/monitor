@@ -18,7 +18,7 @@ The system supports multiple output channels, including WhatsApp notifications, 
 
 ## 📦 Quick Start
 
-### ⚠️ Prerequisites
+### ⚠️ Prerequisites 
 
 - **Node.js** ≥ `20.14.0` — _JavaScript runtime environment_
 - **MySQL** ≥ `8.0` — _Relational database_
