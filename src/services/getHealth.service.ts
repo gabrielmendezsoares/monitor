@@ -19,10 +19,6 @@ export const getHealth = async (): Promise<IResponse.IResponse<IResponseData.IGe
           value: process.env.PORT ?? '3000',
           isListeningModifiedEvent: true
         },
-        testCoverage: {
-          name: 'Cobertura de testes',
-          value: '100%'
-        },
         logLevel: {
           name: 'Nível de log',
           value: process.env.LOG_LEVEL ?? 'info',

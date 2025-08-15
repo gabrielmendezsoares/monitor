@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 🖥️ Monitor
-  version: 2.0.0
+  version: 2.0.1
   description: |
     ## 📋 Overview
 
@@ -88,7 +88,6 @@ components:
             - cpuUsage
             - memoryUsage
             - port
-            - testCoverage
             - logLevel
           properties:
             cpuUsage:
@@ -145,24 +144,6 @@ components:
                   type: boolean
                   description: If monitor should listen for modification events.
                   example: true
-            testCoverage:
-              type: object
-              required:
-                - name
-                - value
-              properties:
-                name:
-                  type: string
-                  description: Label for test coverage metric.
-                  example: "Cobertura de testes"
-                value:
-                  type: string
-                  description: Value of test coverage.
-                  example: "100%"
-                isListeningModifiedEvent:
-                  type: boolean
-                  description: If monitor should listen for modification events.
-                  example: false
             logLevel:
               type: object
               required:
@@ -287,9 +268,6 @@ paths:
                     name: "Porta"
                     value: "3000"
                     isListeningModifiedEvent: true
-                  testCoverage:
-                    name: 'Cobertura de testes'
-                    value: '100%'
                   logLevel:
                     name: "Nível de log"
                     value: "info"
