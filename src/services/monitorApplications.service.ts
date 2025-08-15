@@ -56,7 +56,7 @@ const fetchMonitorApplicationHealthMap = async (monitorApplication: IMonitorAppl
         API_GATEWAY_API_v1_GET_API_DATA_MAP_URL, 
         { filterMap: { id: monitorApplication.apis_id } }, 
         { timeout: REQUEST_TIMEOUT }
-      )
+      );
     }
   );
 
