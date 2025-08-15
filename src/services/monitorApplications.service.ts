@@ -189,7 +189,7 @@ const formatMonitorApplicationMessageMap = (
   const messagePrefix = `[${ monitorApplication.application_type }]`;
 
   const propertyRetentionMessagePrefix = isAliveTransitionAt 
-    ? `${ messagePrefix }\n~ Desde: _${ formatDuration((momentTimezone().utc().toDate().getTime() - isAliveTransitionAt.getTime()) / 60_000) }_` 
+    ? `${ messagePrefix }\n= Desde: _${ formatDuration((momentTimezone().utc().toDate().getTime() - isAliveTransitionAt.getTime()) / 60_000) }_` 
     : messagePrefix;
 
   return {
