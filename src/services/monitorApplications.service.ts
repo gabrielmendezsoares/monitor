@@ -255,7 +255,7 @@ const processMonitorApplication = async (
         messageMap: formatMonitorApplicationMessageMap(
           monitorApplication,
           monitorApplicationHealthMap,
-          isAliveTransitioned ? isAliveTransitionAt : undefined
+          isPeriodicWarn || isAliveTransitioned ? isAliveTransitionAt : undefined
         )
       };
     }

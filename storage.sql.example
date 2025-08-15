@@ -258,21 +258,23 @@ CREATE TABLE `databases` (
 CREATE TABLE `monitor_applications` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `application_type` VARCHAR(255) NOT NULL UNIQUE,
-    `api_gateway_apis_id` INT NOT NULL,
+    `api_gateway_api_id` INT NOT NULL,
+    `response_map` JSON,
     `is_alive` BOOLEAN NOT NULL DEFAULT TRUE,
-    `is_alive_transition_notified_by_monitor` BOOLEAN NOT NULL DEFAULT FALSE,
     `is_monitor_application_active` BOOLEAN NOT NULL DEFAULT FALSE,
     `is_alive_transition_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
+    CONSTRAINT `response_map` CHECK (JSON_TYPE(`response_map`) = 'OBJECT'),
+
     PRIMARY KEY (`id`),
 
     FOREIGN KEY (`application_type`) REFERENCES `application_types`(`application_type`) ON DELETE CASCADE,
-    FOREIGN KEY (`api_gateway_apis_id`) REFERENCES `api_gateway_apis`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`api_gateway_api_id`) REFERENCES `api_gateway_apis`(`id`) ON DELETE CASCADE,
 
     INDEX `idx_application_type` (`application_type`),
-    INDEX `idx_api_gateway_apis_id` (`api_gateway_apis_id`),
+    INDEX `idx_api_gateway_api_gateway_api_id` (`api_gateway_api_id`),
     INDEX `idx_is_alive` (`is_alive`),
     INDEX `idx_is_alive_transition_notified_by_monitor` (`is_alive_transition_notified_by_monitor`),
     INDEX `idx_is_monitor_application_active` (`is_monitor_application_active`),
