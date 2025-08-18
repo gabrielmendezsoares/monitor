@@ -7,4 +7,3 @@ docker-compose.yml.example
 README.md
 storage.sql
 storage.sql.example
-swagger.yml
