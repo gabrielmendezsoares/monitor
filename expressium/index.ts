@@ -11,77 +11,13 @@ import { cryptographyUtil, HttpClientUtil, loggerUtil, projectUtil, rateLimiterU
 import { ApiKeyStrategy, BasicStrategy, BasicAndBearerStrategy, BearerStrategy } from './utils/strategies/index.js';
 import { IAuthenticationStrategy } from './utils/strategies/interfaces/index.js';
 
-/**
- * ## global
- *
- * Global type declarations for the Node.js environment.
- *
- * @description
- * Extends the global Node.js namespace with custom type definitions to support
- * utility methods and global enhancements. Enables type safety and autocompletion
- * for custom extensions to native JavaScript objects.
- */
-declare global {
-  /**
-   * ## ObjectConstructor
-   *
-   * Augments the global `Object` interface with custom type-checking utilities.
-   *
-   * @description
-   * Adds reusable type guard methods to the `Object` constructor to enhance
-   * safety when handling unknown or dynamic values.
-   */
-  interface ObjectConstructor {
-    /**
-     * ## isObject
-     *
-     * Type guard for non-null objects.
-     *
-     * @description
-     * Returns `true` if the input is a non-null object. By default, arrays are excluded,
-     * but you can include them by passing `true` to `includeArrays`.
-     *
-     * @param element - The value to test.
-     * @param includeArrays - Whether to treat arrays as objects (default: `false`).
-     * 
-     * @returns
-     * `true` if the value is an object (excluding `null`, and optionally arrays).
-     */
-    isObject(element: unknown, includeArrays?: boolean): element is object;
-
-    /**
-     * ## isString
-     *
-     * Type guard for string values.
-     *
-     * @description
-     * Checks whether a value is a string (primitive or `String` object)
-     * using `Object.prototype.toString`, for more reliable results than `typeof`.
-     *
-     * @param element - The value to test.
-     * 
-     * @returns
-     * `true` if the value is a string.
-     */
-    isString(element: unknown): element is string;
-  }
-}
-
-Object.isObject = (element: unknown, includeArrays = false): element is object => {
-  return element !== null && typeof element === 'object' && (includeArrays || !Array.isArray(element));
-};
-
-Object.isString = (element: unknown): element is string => {
-  return Object.prototype.toString.call(element) === '[object String]';
-};
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PROJECT_ROOT_DIRECTORY = await projectUtil.findProjectRootDirectory(__dirname);
 const SSL_DIRECTORY = path.resolve(PROJECT_ROOT_DIRECTORY, 'ssl');
 const PORT = process.env.PORT ?? '3000';
-const PERIODIC_LOG_INTERVAL = 60_000;
+const PERIODIC_LOGGING_INTERVAL = 60_000;
 const SHUTDOWN_SIGNAL_LIST = ['SIGTERM', 'SIGINT'] as const;
 const SHUTDOWN_TIMEOUT = 5_000;
 
@@ -147,7 +83,7 @@ const setupPeriodicLogging = (): NodeJS.Timeout => {
     (): void => {
       console.log(`${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') } [application]: Server running on port ${ PORT }`);
     }, 
-    PERIODIC_LOG_INTERVAL
+    PERIODIC_LOGGING_INTERVAL
   ).unref();
 };
 
@@ -177,6 +113,7 @@ const startServer = async (serverInstance: Express | https.Server): Promise<Serv
     PORT, 
     (): void => {
       console.log(`${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') } [application]: Server started`);
+      console.log(`${ momentTimezone().utc().format('DD-MM-YYYY HH:mm:ss') } [application]: Server running on port ${ PORT }`);
       setupPeriodicLogging();
     }
   );

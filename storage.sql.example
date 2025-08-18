@@ -16,9 +16,10 @@ DROP TABLE IF EXISTS `access_control_whatsapp_events`;
 DROP TABLE IF EXISTS `access_control_whitelisted_targets`;
 DROP TABLE IF EXISTS `api_gateway_apis`;
 DROP TABLE IF EXISTS `databases`;
+DROP TABLE IF EXISTS `fence_watcher_triggers`;
 DROP TABLE IF EXISTS `monitor_applications`;
-DROP TABLE IF EXISTS `network_tracker_hosts`;
 DROP TABLE IF EXISTS `network_tracker_events`;
+DROP TABLE IF EXISTS `network_tracker_hosts`;
 DROP TABLE IF EXISTS `sigma_cloud_d_guard_integration_servers`;
 DROP TABLE IF EXISTS `sigma_cloud_d_guard_integration_layouts`;
 DROP TABLE IF EXISTS `sigma_cloud_d_guard_integration_workstations`;
@@ -255,6 +256,21 @@ CREATE TABLE `databases` (
     INDEX `idx_updated_at` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `fence_watcher_triggers` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `key` VARCHAR(255) NOT NULL UNIQUE,
+    `quantity` INT NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+
+    INDEX `idx_key` (`key`),
+    INDEX `idx_quantity` (`quantity`),
+    INDEX `idx_created_at` (`created_at`),
+    INDEX `idx_updated_at` (`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `monitor_applications` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `application_type` VARCHAR(255) NOT NULL UNIQUE,
@@ -274,41 +290,9 @@ CREATE TABLE `monitor_applications` (
     FOREIGN KEY (`api_gateway_api_id`) REFERENCES `api_gateway_apis`(`id`) ON DELETE CASCADE,
 
     INDEX `idx_application_type` (`application_type`),
-    INDEX `idx_api_gateway_api_gateway_api_id` (`api_gateway_api_id`),
+    INDEX `idx_api_gateway_api_id` (`api_gateway_api_id`),
     INDEX `idx_is_alive` (`is_alive`),
-    INDEX `idx_is_alive_transition_notified_by_monitor` (`is_alive_transition_notified_by_monitor`),
     INDEX `idx_is_monitor_application_active` (`is_monitor_application_active`),
-    INDEX `idx_is_alive_transition_at` (`is_alive_transition_at`),
-    INDEX `idx_created_at` (`created_at`),
-    INDEX `idx_updated_at` (`updated_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE `network_tracker_hosts` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `ip` VARCHAR(255) NOT NULL UNIQUE,
-    `description` VARCHAR(255) NOT NULL,
-    `account_id` VARCHAR(255) NOT NULL,
-    `partition_id` VARCHAR(255) NOT NULL,
-    `zone_id` VARCHAR(255),
-    `consecutive_successes` INT NOT NULL DEFAULT 0,
-    `consecutive_failures` INT NOT NULL DEFAULT 0,
-    `is_alive` BOOLEAN NOT NULL DEFAULT TRUE,
-    `is_network_tracker_host_active` BOOLEAN NOT NULL DEFAULT FALSE,
-    `is_alive_transition_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (`id`),
-
-    INDEX `idx_ip` (`ip`),
-    INDEX `idx_description` (`description`),
-    INDEX `idx_account_id` (`account_id`),
-    INDEX `idx_partition_id` (`partition_id`),
-    INDEX `idx_zone_id` (`zone_id`),
-    INDEX `idx_consecutive_successes` (`consecutive_successes`),
-    INDEX `idx_consecutive_failures` (`consecutive_failures`),
-    INDEX `idx_is_alive` (`is_alive`),
-    INDEX `idx_is_network_tracker_host_active` (`is_network_tracker_host_active`),
     INDEX `idx_is_alive_transition_at` (`is_alive_transition_at`),
     INDEX `idx_created_at` (`created_at`),
     INDEX `idx_updated_at` (`updated_at`)
@@ -343,6 +327,37 @@ CREATE TABLE `network_tracker_events` (
     INDEX `idx_partition` (`partition`),
     INDEX `idx_protocol_type` (`protocol_type`),
     INDEX `idx_status` (`status`),
+    INDEX `idx_created_at` (`created_at`),
+    INDEX `idx_updated_at` (`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `network_tracker_hosts` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `ip` VARCHAR(255) NOT NULL UNIQUE,
+    `description` VARCHAR(255) NOT NULL,
+    `account_id` VARCHAR(255) NOT NULL,
+    `partition_id` VARCHAR(255) NOT NULL,
+    `zone_id` VARCHAR(255),
+    `consecutive_successes` INT NOT NULL DEFAULT 0,
+    `consecutive_failures` INT NOT NULL DEFAULT 0,
+    `is_alive` BOOLEAN NOT NULL DEFAULT TRUE,
+    `is_network_tracker_host_active` BOOLEAN NOT NULL DEFAULT FALSE,
+    `is_alive_transition_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+
+    INDEX `idx_ip` (`ip`),
+    INDEX `idx_description` (`description`),
+    INDEX `idx_account_id` (`account_id`),
+    INDEX `idx_partition_id` (`partition_id`),
+    INDEX `idx_zone_id` (`zone_id`),
+    INDEX `idx_consecutive_successes` (`consecutive_successes`),
+    INDEX `idx_consecutive_failures` (`consecutive_failures`),
+    INDEX `idx_is_alive` (`is_alive`),
+    INDEX `idx_is_network_tracker_host_active` (`is_network_tracker_host_active`),
+    INDEX `idx_is_alive_transition_at` (`is_alive_transition_at`),
     INDEX `idx_created_at` (`created_at`),
     INDEX `idx_updated_at` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -16,4 +16,5 @@ ssl/*.pem*
 ssl/*.srl*
 .env
 docker-compose.yml
+package-lock.json
 storage.sql
