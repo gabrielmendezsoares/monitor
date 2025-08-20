@@ -12,32 +12,29 @@ DROP TABLE IF EXISTS `response_types`;
 DROP TABLE IF EXISTS `role_types`;
 
 
-DROP TABLE IF EXISTS `access_control_whatsapp_events`;
 DROP TABLE IF EXISTS `access_control_whitelisted_targets`;
+DROP TABLE IF EXISTS `monitor_applications`;
 DROP TABLE IF EXISTS `api_gateway_apis`;
 DROP TABLE IF EXISTS `databases`;
-DROP TABLE IF EXISTS `fence_watcher_triggers`;
-DROP TABLE IF EXISTS `monitor_applications`;
-DROP TABLE IF EXISTS `network_tracker_events`;
+DROP TABLE IF EXISTS `fence_tracker_triggers`;
 DROP TABLE IF EXISTS `network_tracker_hosts`;
-DROP TABLE IF EXISTS `sigma_cloud_d_guard_integration_servers`;
+DROP TABLE IF EXISTS `query_gateway_queries`;
+DROP TABLE IF EXISTS `sigma_cloud_access_control_events`;
+DROP TABLE IF EXISTS `sigma_cloud_alarm_events`;
 DROP TABLE IF EXISTS `sigma_cloud_d_guard_integration_layouts`;
 DROP TABLE IF EXISTS `sigma_cloud_d_guard_integration_workstations`;
-DROP TABLE IF EXISTS `sigma_cloud_gabriel_integration_events`;
+DROP TABLE IF EXISTS `sigma_cloud_d_guard_integration_servers`;
 DROP TABLE IF EXISTS `sigma_cloud_neppo_integration_satisfaction_surveys`;
-DROP TABLE IF EXISTS `query_gateway_queries`;
 DROP TABLE IF EXISTS `users`;
 
 
-DROP EVENT IF EXISTS `delete_access_control_whatsapp_events`;
-DROP EVENT IF EXISTS `delete_network_tracker_events`;
-DROP EVENT IF EXISTS `delete_sigma_cloud_gabriel_integration_events`;
+DROP EVENT IF EXISTS `delete_sigma_cloud_access_control_events`;
+DROP EVENT IF EXISTS `delete_sigma_cloud_alarm_events`;
 DROP EVENT IF EXISTS `delete_sigma_cloud_neppo_integration_satisfaction_surveys`;
 
 
 DROP PROCEDURE IF EXISTS `validate_api_gateway_api`;
 DROP PROCEDURE IF EXISTS `validate_database`;
-DROP PROCEDURE IF EXISTS `validate_query_gateway_query`;
 DROP PROCEDURE IF EXISTS `validate_user`;
 
 
@@ -123,35 +120,6 @@ CREATE TABLE `role_types` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-CREATE TABLE `access_control_whatsapp_events` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `account` VARCHAR(255) NOT NULL,
-    `code` VARCHAR(255) NOT NULL,
-    `company_id` VARCHAR(255) NOT NULL,
-    `complement` VARCHAR(255) NOT NULL,
-    `event_id` VARCHAR(255) NOT NULL,
-    `protocol_type` VARCHAR(255) NOT NULL,
-    `receiver_description` VARCHAR(255) NOT NULL,
-    `status` VARCHAR(255) NOT NULL,
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    CHECK (`status` IN ('failed', 'sent')),
-
-    PRIMARY KEY (`id`),
-
-    INDEX `idx_account` (`account`),
-    INDEX `idx_code` (`code`),
-    INDEX `idx_company_id` (`company_id`),
-    INDEX `idx_complement` (`complement`),
-    INDEX `idx_event_id` (`event_id`),
-    INDEX `idx_protocol_type` (`protocol_type`),
-    INDEX `idx_receiver_description` (`receiver_description`),
-    INDEX `idx_status` (`status`),
-    INDEX `idx_created_at` (`created_at`),
-    INDEX `idx_updated_at` (`updated_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE `access_control_whitelisted_targets` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `account_id` VARCHAR(10) NOT NULL,
@@ -184,7 +152,7 @@ CREATE TABLE `api_gateway_apis` (
     `method_type` VARCHAR(255) NOT NULL,
     `response_type` VARCHAR(255) NOT NULL,
     `api_key_authentication_key` LONGBLOB,
-    `api_key_authentication_header_name` VARCHAR(255),
+    `api_key_authentication_header_name` LONGBLOB,
     `basic_authentication_username` LONGBLOB,
     `basic_authentication_password` LONGBLOB,
     `basic_and_bearer_authentication_url` VARCHAR(255),
@@ -223,7 +191,6 @@ CREATE TABLE `api_gateway_apis` (
     INDEX `idx_basic_and_bearer_authentication_method_type` (`basic_and_bearer_authentication_method_type`),
     INDEX `idx_method_type` (`method_type`),
     INDEX `idx_response_type` (`response_type`),
-    INDEX `idx_api_key_authentication_header_name` (`api_key_authentication_header_name`),
     INDEX `idx_basic_and_bearer_authentication_url` (`basic_and_bearer_authentication_url`),
     INDEX `idx_basic_and_bearer_authentication_expiration_buffer` (`basic_and_bearer_authentication_expiration_buffer`),
     INDEX `idx_url` (`url`),
@@ -256,7 +223,7 @@ CREATE TABLE `databases` (
     INDEX `idx_updated_at` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `fence_watcher_triggers` (
+CREATE TABLE `fence_tracker_triggers` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `key` VARCHAR(255) NOT NULL UNIQUE,
     `quantity` INT NOT NULL,
@@ -298,39 +265,6 @@ CREATE TABLE `monitor_applications` (
     INDEX `idx_updated_at` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `network_tracker_events` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `account` VARCHAR(255) NOT NULL,
-    `auxiliary` VARCHAR(255) NOT NULL,
-    `code` VARCHAR(255) NOT NULL,
-    `company_id` VARCHAR(255) NOT NULL,
-    `complement` VARCHAR(255) NOT NULL,
-    `event_id` VARCHAR(255) NOT NULL,
-    `event_log` VARCHAR(255) NOT NULL,
-    `partition` VARCHAR(255) NOT NULL,
-    `protocol_type` VARCHAR(255) NOT NULL,
-    `status` VARCHAR(255) NOT NULL,
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    CHECK (`status` IN ('failed', 'sent')),
-
-    PRIMARY KEY (`id`),
-
-    INDEX `idx_account` (`account`),
-    INDEX `idx_auxiliary` (`auxiliary`),
-    INDEX `idx_code` (`code`),
-    INDEX `idx_company_id` (`company_id`),
-    INDEX `idx_complement` (`complement`),
-    INDEX `idx_event_id` (`event_id`),
-    INDEX `idx_event_log` (`event_log`),
-    INDEX `idx_partition` (`partition`),
-    INDEX `idx_protocol_type` (`protocol_type`),
-    INDEX `idx_status` (`status`),
-    INDEX `idx_created_at` (`created_at`),
-    INDEX `idx_updated_at` (`updated_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE `network_tracker_hosts` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `ip` VARCHAR(255) NOT NULL UNIQUE,
@@ -366,7 +300,7 @@ CREATE TABLE `query_gateway_queries` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(255) UNIQUE NOT NULL,
     `group_name` VARCHAR(255),
-    `databases_id` INT NOT NULL,
+    `database_id` INT NOT NULL,
     `sql` LONGTEXT NOT NULL,
     `variable_map` JSON,
     `replacement_map` JSON,
@@ -379,12 +313,82 @@ CREATE TABLE `query_gateway_queries` (
 
     PRIMARY KEY (`id`),
 
-    FOREIGN KEY (`databases_id`) REFERENCES `databases`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`database_id`) REFERENCES `databases`(`id`) ON DELETE CASCADE,
 
     INDEX `idx_name` (`name`),
     INDEX `idx_group_name` (`group_name`),
-    INDEX `idx_databases_id` (`databases_id`),
+    INDEX `idx_database_id` (`database_id`),
     INDEX `idx_is_query_gateway_query_active` (`is_query_gateway_query_active`),
+    INDEX `idx_created_at` (`created_at`),
+    INDEX `idx_updated_at` (`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `sigma_cloud_access_control_events` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `application_type` VARCHAR(255) NOT NULL,
+    `account` VARCHAR(255) NOT NULL,
+    `code` VARCHAR(255) NOT NULL,
+    `company_id` INT UNSIGNED NOT NULL,
+    `complement` VARCHAR(255) NOT NULL,
+    `event_id` VARCHAR(255) NOT NULL,
+    `protocol_type` VARCHAR(255) NOT NULL,
+    `receiver_description` VARCHAR(255) NOT NULL,
+    `status` VARCHAR(255) NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CHECK (`status` IN ('failed', 'sent')),
+
+    PRIMARY KEY (`id`),
+
+    FOREIGN KEY (`application_type`) REFERENCES `application_types`(`application_type`) ON DELETE CASCADE,
+
+    INDEX `idx_application_type` (`application_type`),
+    INDEX `idx_account` (`account`),
+    INDEX `idx_code` (`code`),
+    INDEX `idx_company_id` (`company_id`),
+    INDEX `idx_complement` (`complement`),
+    INDEX `idx_event_id` (`event_id`),
+    INDEX `idx_protocol_type` (`protocol_type`),
+    INDEX `idx_receiver_description` (`receiver_description`),
+    INDEX `idx_status` (`status`),
+    INDEX `idx_created_at` (`created_at`),
+    INDEX `idx_updated_at` (`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `sigma_cloud_alarm_events` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `application_type` VARCHAR(255) NOT NULL,
+    `account` VARCHAR(255) NOT NULL,
+    `auxiliary` VARCHAR(255) NOT NULL,
+    `code` VARCHAR(255) NOT NULL,
+    `company_id` VARCHAR(255) NOT NULL,
+    `complement` VARCHAR(255) NOT NULL,
+    `event_id` VARCHAR(255) NOT NULL,
+    `event_log` VARCHAR(255) NOT NULL,
+    `partition` VARCHAR(255) NOT NULL,
+    `protocol_type` VARCHAR(255) NOT NULL,
+    `status` VARCHAR(255) NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CHECK (`status` IN ('failed', 'sent')),
+
+    PRIMARY KEY (`id`),
+
+    FOREIGN KEY (`application_type`) REFERENCES `application_types`(`application_type`) ON DELETE CASCADE,
+
+    INDEX `idx_application_type` (`application_type`),
+    INDEX `idx_account` (`account`),
+    INDEX `idx_auxiliary` (`auxiliary`),
+    INDEX `idx_code` (`code`),
+    INDEX `idx_company_id` (`company_id`),
+    INDEX `idx_complement` (`complement`),
+    INDEX `idx_event_id` (`event_id`),
+    INDEX `idx_event_log` (`event_log`),
+    INDEX `idx_partition` (`partition`),
+    INDEX `idx_protocol_type` (`protocol_type`),
+    INDEX `idx_status` (`status`),
     INDEX `idx_created_at` (`created_at`),
     INDEX `idx_updated_at` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -411,18 +415,18 @@ CREATE TABLE `sigma_cloud_d_guard_integration_servers` (
 CREATE TABLE `sigma_cloud_d_guard_integration_layouts` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `guid` VARCHAR(255) NOT NULL,
-    `sigma_cloud_d_guard_integration_servers_id` INT NOT NULL,
+    `sigma_cloud_d_guard_integration_server_id` INT NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`id`),
 
-    FOREIGN KEY (`sigma_cloud_d_guard_integration_servers_id`) REFERENCES `sigma_cloud_d_guard_integration_servers`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`sigma_cloud_d_guard_integration_server_id`) REFERENCES `sigma_cloud_d_guard_integration_servers`(`id`) ON DELETE CASCADE,
 
-    UNIQUE KEY `unique_guid_sigma_cloud_d_guard_integration_servers_id` (`guid`, `sigma_cloud_d_guard_integration_servers_id`),
+    UNIQUE KEY `unique_guid_sigma_cloud_d_guard_integration_server_id` (`guid`, `sigma_cloud_d_guard_integration_server_id`),
 
     INDEX `idx_guid` (`guid`),
-    INDEX `idx_sigma_cloud_d_guard_integration_servers_id` (`sigma_cloud_d_guard_integration_servers_id`),
+    INDEX `idx_sigma_cloud_d_guard_integration_server_id` (`sigma_cloud_d_guard_integration_server_id`),
     INDEX `idx_created_at` (`created_at`),
     INDEX `idx_updated_at` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -430,47 +434,18 @@ CREATE TABLE `sigma_cloud_d_guard_integration_layouts` (
 CREATE TABLE `sigma_cloud_d_guard_integration_workstations` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `guid` VARCHAR(255) NOT NULL,
-    `sigma_cloud_d_guard_integration_servers_id` INT NOT NULL,
+    `sigma_cloud_d_guard_integration_server_id` INT NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`id`),
 
-    FOREIGN KEY (`sigma_cloud_d_guard_integration_servers_id`) REFERENCES `sigma_cloud_d_guard_integration_servers`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`sigma_cloud_d_guard_integration_server_id`) REFERENCES `sigma_cloud_d_guard_integration_servers`(`id`) ON DELETE CASCADE,
 
-    UNIQUE KEY `unique_guid_sigma_cloud_d_guard_integration_servers_id` (`guid`, `sigma_cloud_d_guard_integration_servers_id`),
+    UNIQUE KEY `unique_guid_sigma_cloud_d_guard_integration_server_id` (`guid`, `sigma_cloud_d_guard_integration_server_id`),
 
     INDEX `idx_guid` (`guid`),
-    INDEX `idx_sigma_cloud_d_guard_integration_servers_id` (`sigma_cloud_d_guard_integration_servers_id`),
-    INDEX `idx_created_at` (`created_at`),
-    INDEX `idx_updated_at` (`updated_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE `sigma_cloud_gabriel_integration_events` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `account` VARCHAR(255) NOT NULL,
-    `code` VARCHAR(255) NOT NULL,
-    `company_id` VARCHAR(255) NOT NULL,
-    `complement` VARCHAR(255) NOT NULL,
-    `event_id` VARCHAR(255) NOT NULL,
-    `protocol_type` VARCHAR(255) NOT NULL,
-    `receiver_description` VARCHAR(255) NOT NULL,
-    `status` VARCHAR(255) NOT NULL,
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    CHECK (`status` IN ('failed', 'sent')),
-
-    PRIMARY KEY (`id`),
-
-    INDEX `idx_account` (`account`),
-    INDEX `idx_code` (`code`),
-    INDEX `idx_company_id` (`company_id`),
-    INDEX `idx_complement` (`complement`),
-    INDEX `idx_event_id` (`event_id`),
-    INDEX `idx_protocol_type` (`protocol_type`),
-    INDEX `idx_receiver_description` (`receiver_description`),
-    INDEX `idx_status` (`status`),
+    INDEX `idx_sigma_cloud_d_guard_integration_server_id` (`sigma_cloud_d_guard_integration_server_id`),
     INDEX `idx_created_at` (`created_at`),
     INDEX `idx_updated_at` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -479,7 +454,8 @@ CREATE TABLE `sigma_cloud_neppo_integration_satisfaction_surveys` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `sequential_id` VARCHAR(255) NOT NULL,
     `defect` VARCHAR(255) NOT NULL,
-    `phone` VARCHAR(255) NOT NULL,
+    `registered_phone` VARCHAR(255) NOT NULL,
+    `normalized_phone` VARCHAR(255),
     `status` VARCHAR(255) NOT NULL,
     `type` VARCHAR(255) NOT NULL,
     `started_at` DATETIME NOT NULL,
@@ -495,7 +471,8 @@ CREATE TABLE `sigma_cloud_neppo_integration_satisfaction_surveys` (
 
     INDEX `idx_sequential_id` (`sequential_id`),
     INDEX `idx_defect` (`defect`),
-    INDEX `idx_phone` (`phone`),
+    INDEX `idx_registered_phone` (`registered_phone`),
+    INDEX `idx_normalized_phone` (`normalized_phone`),
     INDEX `idx_status` (`status`),
     INDEX `idx_type` (`type`),
     INDEX `idx_started_at` (`started_at`),
@@ -529,22 +506,16 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-CREATE EVENT `delete_access_control_whatsapp_events`
+CREATE EVENT `delete_sigma_cloud_access_control_events`
 ON SCHEDULE EVERY 1 DAY
 DO
-  DELETE FROM access_control_whatsapp_events
+  DELETE FROM sigma_cloud_access_control_events
   WHERE created_at < NOW() - INTERVAL 3 MONTH;
 
-CREATE EVENT `delete_network_tracker_events`
+CREATE EVENT `delete_sigma_cloud_alarm_events`
 ON SCHEDULE EVERY 1 DAY
 DO
-  DELETE FROM network_tracker_events
-  WHERE created_at < NOW() - INTERVAL 3 MONTH;
-
-CREATE EVENT `delete_sigma_cloud_gabriel_integration_events`
-ON SCHEDULE EVERY 1 DAY
-DO
-  DELETE FROM sigma_cloud_gabriel_events
+  DELETE FROM sigma_cloud_alarm_events
   WHERE created_at < NOW() - INTERVAL 3 MONTH;
 
 CREATE EVENT `delete_sigma_cloud_neppo_integration_satisfaction_surveys`
@@ -574,36 +545,31 @@ BEGIN
     SET `is_valid` = TRUE;
     SET `error_message` = NULL;
     
-    IF `name` IN ('filterMap', 'globalReplacementMap') THEN
-        SET `is_valid` = FALSE;
-        SET `error_message` = 'Invalid name: Cannot be filterMap or globalReplacementMap';
-    ELSE
-        CASE `authentication_type`
-            WHEN 'API Key' THEN
-                IF `api_key_authentication_key` IS NULL OR `api_key_authentication_header_name` IS NULL THEN
-                    SET `is_valid` = FALSE;
-                    SET `error_message` = 'Invalid API Key authentication: Both key and header name are required';
-                END IF;
-            
-            WHEN 'Basic' THEN
-                IF `basic_authentication_username` IS NULL OR `basic_authentication_password` IS NULL THEN
-                    SET `is_valid` = FALSE;
-                    SET `error_message` = 'Invalid Basic authentication: Both username and password are required';
-                END IF;
-            
-            WHEN 'Basic And Bearer' THEN
-                IF `basic_and_bearer_authentication_method_type` IS NULL OR `basic_and_bearer_authentication_url` IS NULL THEN
-                    SET `is_valid` = FALSE;
-                    SET `error_message` = 'Invalid Basic And Bearer authentication: Both method type and URL are required';
-                END IF;
-            
-            WHEN 'Bearer' THEN
-                IF `bearer_authentication_token` IS NULL THEN
-                    SET `is_valid` = FALSE;
-                    SET `error_message` = 'Invalid Bearer authentication: Token is required';
-                END IF;
-        END CASE;
-    END IF;
+    CASE `authentication_type`
+        WHEN 'API Key' THEN
+            IF `api_key_authentication_key` IS NULL OR `api_key_authentication_header_name` IS NULL THEN
+                SET `is_valid` = FALSE;
+                SET `error_message` = 'Invalid API Key authentication: Both key and header name are required';
+            END IF;
+        
+        WHEN 'Basic' THEN
+            IF `basic_authentication_username` IS NULL OR `basic_authentication_password` IS NULL THEN
+                SET `is_valid` = FALSE;
+                SET `error_message` = 'Invalid Basic authentication: Both username and password are required';
+            END IF;
+        
+        WHEN 'Basic And Bearer' THEN
+            IF `basic_and_bearer_authentication_method_type` IS NULL OR `basic_and_bearer_authentication_url` IS NULL THEN
+                SET `is_valid` = FALSE;
+                SET `error_message` = 'Invalid Basic And Bearer authentication: Both method type and URL are required';
+            END IF;
+        
+        WHEN 'Bearer' THEN
+            IF `bearer_authentication_token` IS NULL THEN
+                SET `is_valid` = FALSE;
+                SET `error_message` = 'Invalid Bearer authentication: Token is required';
+            END IF;
+    END CASE;
 END;
 //
 
@@ -638,22 +604,6 @@ BEGIN
                 SET `error_message` = 'Invalid database configuration: Both host and database are required';
             END IF;
     END CASE;
-END;
-//
-
-CREATE PROCEDURE `validate_query_gateway_query`(
-    IN `name` VARCHAR(255),
-    OUT `is_valid` BOOLEAN,
-    OUT `error_message` VARCHAR(255)
-)
-BEGIN
-    SET `is_valid` = TRUE;
-    SET `error_message` = NULL;
-    
-    IF `name` IN ('filterMap', 'globalReplacementMap') THEN
-        SET `is_valid` = FALSE;
-        SET `error_message` = 'Invalid name: Cannot be filterMap or globalReplacementMap';
-    END IF;
 END;
 //
 
@@ -779,44 +729,6 @@ BEGIN
         `error_message`
     );
     
-    IF NOT `is_valid` THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = `error_message`;
-    END IF;
-END;
-//
-
-CREATE TRIGGER `before_validate_query_gateway_queries_insert`
-BEFORE INSERT ON `query_gateway_queries`
-FOR EACH ROW
-BEGIN
-    DECLARE `is_valid` BOOLEAN DEFAULT TRUE;
-    DECLARE `error_message` VARCHAR(255);
-
-    CALL `validate_query_gateway_query`(
-        NEW.`name`,
-        `is_valid`,
-        `error_message`
-    );
-
-    IF NOT `is_valid` THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = `error_message`;
-    END IF;
-END;
-//
-
-CREATE TRIGGER `before_validate_query_gateway_queries_update`
-BEFORE UPDATE ON `query_gateway_queries`
-FOR EACH ROW
-BEGIN
-    DECLARE `is_valid` BOOLEAN DEFAULT TRUE;
-    DECLARE `error_message` VARCHAR(255);
-
-    CALL `validate_query_gateway_query`(
-        NEW.`name`,
-        `is_valid`,
-        `error_message`
-    );
-
     IF NOT `is_valid` THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = `error_message`;
     END IF;
