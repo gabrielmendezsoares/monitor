@@ -54,7 +54,7 @@ const fetchMonitorApplicationHealthMap = async (monitorApplication: IMonitorAppl
     (): Promise<Axios.AxiosXHR<unknown>> => {
       return httpClientInstance.post(
         API_GATEWAY_API_v1_GET_API_DATA_MAP_URL, 
-        { filterMap: { id: monitorApplication.apis_id } }, 
+        { filterMap: { id: monitorApplication.api_gateway_api_id } }, 
         { timeout: REQUEST_TIMEOUT }
       );
     }
@@ -67,15 +67,15 @@ const fetchMonitorApplicationHealthMap = async (monitorApplication: IMonitorAppl
     }
   };
 
-  if (!response?.data?.status) {
+  if (!response?.data?.data) {
     return { 
       isHealthy: false,
       propertyRetentionMap: defaultRetentionMap
     };
   }
 
-  const api = await prisma.apis.findUnique({ where: { id: monitorApplication.apis_id } });
-  const subResponse = api ? response.data?.data?.[api.name] : null;
+  const api = await prisma.api_gateway_api.findUnique({ where: { id: monitorApplication.api_gateway_api_id } });
+  const subResponse = api ? response.data.data[api.name] : null;
   const subResponseDataMonitor = subResponse?.data?.monitor as Record<string, IProperty.IProperty> | undefined;
 
   if (!isObjectType(subResponseDataMonitor)) {

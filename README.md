@@ -2,17 +2,20 @@
 
 ## 📋 Overview
 
-Monitor is a modular observability system designed to track the health and performance of applications through their exposed endpoints. It continuously collects, analyzes, and formats status data from multiple services, offering flexible reporting options that suit different operational needs.
+Monitor is a robust and extensible observability service designed to track and assess the health of distributed systems by querying registered API endpoints. It supports real-time evaluations, change detection, and flexible alerting through various channels such as WhatsApp.
 
-The system supports multiple output channels, including WhatsApp notifications, JSON API responses, and custom report formats. Its architecture is built for adaptability — whether running standalone or integrated into broader monitoring pipelines, Monitor provides a reliable, centralized view of system health across environments.
+By querying centralized API Gateway sources, Monitor dynamically retrieves system status data, identifies added/removed/modified properties, and determines availability state changes. It offers structured insight into service health over time, reducing the need for manual checks while surfacing actionable performance signals.
 
 ### 🎯 Objectives
 
-- Continuously monitor application health endpoints
-- Group and format data for flexible consumption
-- Deliver reports via various channels (e.g., WhatsApp, HTTP endpoints)
-- Enable integration with third-party systems and dashboards
-- Provide visibility into system uptime, latency, and failures
+- Continuously check the health of registered applications through centralized API Gateway routes
+- Detect and classify property-level changes: additions, modifications, removals
+- Track service availability and log status transitions with timestamps
+- Measure performance (e.g., response time) per monitored endpoint
+- Format results into structured messages with rich context for alerting
+- Deliver monitoring reports via WhatsApp or integrate with external dashboards
+- Reduce manual oversight through automatic detection and reporting workflows
+- Support flexible, pluggable architecture for easy expansion and environment customization
 
 --- 
 
@@ -20,8 +23,9 @@ The system supports multiple output channels, including WhatsApp notifications, 
 
 ### ⚠️ Prerequisites
 
-- **Node.js** ≥ `20.14.0` — _JavaScript runtime environment_
-- **MySQL** ≥ `8.0` — _Relational database_
+- [**Node.js**](https://nodejs.org/) ≥ `20.14.0` — _JavaScript runtime environment_
+- [**MySQL**](https://www.mysql.com/) ≥ `8.0` — _Relational database_
+- [**API Gateway**](https://github.com/gabrielmendezsoares/api-gateway) ≥ `3.0.1` — _External API orchestration service_
 
 ### ⚙️ Setup 
 

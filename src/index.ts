@@ -52,7 +52,7 @@ const buildServer = async (): Promise<void> => {
 
     const serverInstance = await createServer(app);
     
-    startServer(serverInstance as Express);
+    await startServer(serverInstance as Express);
 
     await createSequentialInterval(
       monitorApplicationsService.monitorApplications, 
