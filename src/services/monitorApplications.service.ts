@@ -1,9 +1,9 @@
 import momentTimezone from 'moment-timezone';
 import { isDeepEqual, isObjectType } from 'remeda';
-import { PrismaClient } from '@prisma/client/storage/client.js';
+import { monitor_applications, PrismaClient } from '@prisma/client/storage/client.js';
 import { InputJsonObject } from '@prisma/client/storage/runtime/library.js';
 import { HttpClientUtil, loggerUtil, BasicAndBearerStrategy } from '../../expressium/index.js';
-import { IMonitorApplication, IMonitorApplicationHealthMap, IMonitorApplicationMap, IMonitorApplicationMessageMap, IPerformanceDataMap, IProperty } from './interfaces/index.js';
+import { IMonitorApplicationHealthMap, IMonitorApplicationMap, IMonitorApplicationMessageMap, IPerformanceDataMap, IProperty } from './interfaces/index.js';
 
 const SERVER_IP = process.env.SERVER_IP ?? '127.0.0.1';
 const API_GATEWAY_API_V1_GET_AUTHENTICATION_URL = `http://${ SERVER_IP }:3043/api/v1/get/authentication`;
@@ -30,7 +30,7 @@ const measureExecutionTime = async (
   }
 };
 
-const fetchMonitorApplicationHealthMap = async (monitorApplication: IMonitorApplication.IMonitorApplication): Promise<IMonitorApplicationHealthMap.IMonitorApplicationHealthMap> => {
+const fetchMonitorApplicationHealthMap = async (monitorApplication: monitor_applications): Promise<IMonitorApplicationHealthMap.IMonitorApplicationHealthMap> => {
   const httpClientInstance = new HttpClientUtil.HttpClient();
 
   httpClientInstance.setAuthenticationStrategy(
@@ -146,7 +146,7 @@ const fetchMonitorApplicationHealthMap = async (monitorApplication: IMonitorAppl
 };
 
 const updateMonitorApplication = async (
-  monitorApplication: IMonitorApplication.IMonitorApplication, 
+  monitorApplication: monitor_applications, 
   isAlive: boolean, 
   isAliveTransitionAt: Date,
   updatedAt: Date,
@@ -182,7 +182,7 @@ const formatDuration = (totalMinutes: number): string => {
 };
 
 const formatMonitorApplicationMessageMap = (
-  monitorApplication: IMonitorApplication.IMonitorApplication, 
+  monitorApplication: monitor_applications, 
   monitorApplicationHealthMap: IMonitorApplicationHealthMap.IMonitorApplicationHealthMap,
   isAliveTransitionAt?: Date
 ): IMonitorApplicationMessageMap.IMonitorApplicationMessageMap => {
@@ -215,7 +215,7 @@ const formatMonitorApplicationMessageMap = (
 };
 
 const processMonitorApplication = async (
-  monitorApplication: IMonitorApplication.IMonitorApplication, 
+  monitorApplication: monitor_applications, 
   isPeriodicWarn?: boolean
 ): Promise<IMonitorApplicationMap.IMonitorApplicationMap | null> => {
   try {
@@ -313,7 +313,7 @@ const sendApplicationMonitoringReport = async (
 export const monitorApplications = async (isPeriodicWarn?: boolean): Promise<void> => {
   try {
     const monitorApplicationList = await prisma.monitor_applications.findMany({ where: { is_monitor_application_active: true } });
-    const monitorApplicationMapList = await Promise.all(monitorApplicationList.map((monitorApplication: IMonitorApplication.IMonitorApplication): Promise<IMonitorApplicationMap.IMonitorApplicationMap | null> => processMonitorApplication(monitorApplication, isPeriodicWarn)));
+    const monitorApplicationMapList = await Promise.all(monitorApplicationList.map((monitorApplication: monitor_applications): Promise<IMonitorApplicationMap.IMonitorApplicationMap | null> => processMonitorApplication(monitorApplication, isPeriodicWarn)));
     const monitorApplicationMapFilteredList = monitorApplicationMapList.filter((monitorApplicationMap: IMonitorApplicationMap.IMonitorApplicationMap | null): boolean => monitorApplicationMap !== null) as IMonitorApplicationMap.IMonitorApplicationMap[];
     const serviceOnlineMessageList: string[] = [];
     const serviceOfflineMessageList: string[] = [];
