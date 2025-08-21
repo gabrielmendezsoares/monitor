@@ -7,7 +7,7 @@ import { IMonitorApplicationHealthMap, IMonitorApplicationMap, IMonitorApplicati
 
 const SERVER_IP = process.env.SERVER_IP ?? '127.0.0.1';
 const API_GATEWAY_API_V1_GET_AUTHENTICATION_URL = `http://${ SERVER_IP }:3043/api/v1/get/authentication`;
-const API_GATEWAY_API_v1_GET_API_DATA_MAP_URL = `http://${ SERVER_IP }:3043/api/v1/get/api-data-map`;
+const API_GATEWAY_API_V1_CREATE_API_DATA_URL = `http://${ SERVER_IP }:3043/api/v1/create/api-data`;
 const REQUEST_TIMEOUT = 60_000;
 
 const prisma = new PrismaClient();
@@ -53,7 +53,7 @@ const fetchMonitorApplicationHealthMap = async (monitorApplication: monitor_appl
   } = await measureExecutionTime(
     (): Promise<Axios.AxiosXHR<unknown>> => {
       return httpClientInstance.post(
-        API_GATEWAY_API_v1_GET_API_DATA_MAP_URL, 
+        API_GATEWAY_API_V1_CREATE_API_DATA_URL, 
         { filterMap: { id: monitorApplication.api_gateway_api_id } }, 
         { timeout: REQUEST_TIMEOUT }
       );
