@@ -476,3 +476,28 @@ model sigma_cloud_d_guard_integration_workstations {
   @@index([sigma_cloud_d_guard_integration_server_id], map: "idx_sigma_cloud_d_guard_integration_server_id")
   @@index([updated_at], map: "idx_updated_at")
 }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sigma_cloud_neppo_integration_satisfaction_surveys {
+  id               Int      @id @default(autoincrement())
+  sequential_id    String   @db.VarChar(255)
+  defect           String   @db.VarChar(255)
+  registered_phone String   @db.VarChar(255)
+  normalized_phone String?  @db.VarChar(255)
+  status           String   @db.VarChar(255)
+  type             String   @db.VarChar(255)
+  started_at       DateTime @db.DateTime(0)
+  created_at       DateTime @default(now()) @db.DateTime(0)
+  updated_at       DateTime @default(now()) @db.DateTime(0)
+
+  @@unique([sequential_id, type], map: "unique_sequential_id_type")
+  @@index([created_at], map: "idx_created_at")
+  @@index([defect], map: "idx_defect")
+  @@index([normalized_phone], map: "idx_normalized_phone")
+  @@index([registered_phone], map: "idx_registered_phone")
+  @@index([sequential_id], map: "idx_sequential_id")
+  @@index([started_at], map: "idx_started_at")
+  @@index([status], map: "idx_status")
+  @@index([type], map: "idx_type")
+  @@index([updated_at], map: "idx_updated_at")
+}

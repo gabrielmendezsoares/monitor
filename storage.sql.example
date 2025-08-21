@@ -35,6 +35,7 @@ DROP EVENT IF EXISTS `delete_sigma_cloud_neppo_integration_satisfaction_surveys`
 
 DROP PROCEDURE IF EXISTS `validate_api_gateway_api`;
 DROP PROCEDURE IF EXISTS `validate_database`;
+DROP PROCEDURE IF EXISTS `validate_query_gateway_query`;
 DROP PROCEDURE IF EXISTS `validate_user`;
 
 
@@ -452,7 +453,7 @@ CREATE TABLE `sigma_cloud_d_guard_integration_workstations` (
 
 CREATE TABLE `sigma_cloud_neppo_integration_satisfaction_surveys` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `sequential_id` VARCHAR(255) NOT NULL,
+    `sequential_id` INT UNSIGNED NOT NULL,
     `defect` VARCHAR(255) NOT NULL,
     `registered_phone` VARCHAR(255) NOT NULL,
     `normalized_phone` VARCHAR(255),
@@ -545,31 +546,36 @@ BEGIN
     SET `is_valid` = TRUE;
     SET `error_message` = NULL;
     
-    CASE `authentication_type`
-        WHEN 'API Key' THEN
-            IF `api_key_authentication_key` IS NULL OR `api_key_authentication_header_name` IS NULL THEN
-                SET `is_valid` = FALSE;
-                SET `error_message` = 'Invalid API Key authentication: Both key and header name are required';
-            END IF;
-        
-        WHEN 'Basic' THEN
-            IF `basic_authentication_username` IS NULL OR `basic_authentication_password` IS NULL THEN
-                SET `is_valid` = FALSE;
-                SET `error_message` = 'Invalid Basic authentication: Both username and password are required';
-            END IF;
-        
-        WHEN 'Basic And Bearer' THEN
-            IF `basic_and_bearer_authentication_method_type` IS NULL OR `basic_and_bearer_authentication_url` IS NULL THEN
-                SET `is_valid` = FALSE;
-                SET `error_message` = 'Invalid Basic And Bearer authentication: Both method type and URL are required';
-            END IF;
-        
-        WHEN 'Bearer' THEN
-            IF `bearer_authentication_token` IS NULL THEN
-                SET `is_valid` = FALSE;
-                SET `error_message` = 'Invalid Bearer authentication: Token is required';
-            END IF;
-    END CASE;
+    IF `name` IN ('globalReplacementMap') THEN
+        SET `is_valid` = FALSE;
+        SET `error_message` = 'Invalid name: Cannot be globalReplacementMap';
+    ELSE
+        CASE `authentication_type`
+            WHEN 'API Key' THEN
+                IF `api_key_authentication_key` IS NULL OR `api_key_authentication_header_name` IS NULL THEN
+                    SET `is_valid` = FALSE;
+                    SET `error_message` = 'Invalid API Key authentication: Both key and header name are required';
+                END IF;
+            
+            WHEN 'Basic' THEN
+                IF `basic_authentication_username` IS NULL OR `basic_authentication_password` IS NULL THEN
+                    SET `is_valid` = FALSE;
+                    SET `error_message` = 'Invalid Basic authentication: Both username and password are required';
+                END IF;
+            
+            WHEN 'Basic And Bearer' THEN
+                IF `basic_and_bearer_authentication_method_type` IS NULL OR `basic_and_bearer_authentication_url` IS NULL THEN
+                    SET `is_valid` = FALSE;
+                    SET `error_message` = 'Invalid Basic And Bearer authentication: Both method type and URL are required';
+                END IF;
+            
+            WHEN 'Bearer' THEN
+                IF `bearer_authentication_token` IS NULL THEN
+                    SET `is_valid` = FALSE;
+                    SET `error_message` = 'Invalid Bearer authentication: Token is required';
+                END IF;
+        END CASE;
+    END IF;
 END;
 //
 
@@ -604,6 +610,22 @@ BEGIN
                 SET `error_message` = 'Invalid database configuration: Both host and database are required';
             END IF;
     END CASE;
+END;
+//
+
+CREATE PROCEDURE `validate_query_gateway_query`(
+    IN `name` VARCHAR(255),
+    OUT `is_valid` BOOLEAN,
+    OUT `error_message` VARCHAR(255)
+)
+BEGIN
+    SET `is_valid` = TRUE;
+    SET `error_message` = NULL;
+    
+    IF `name` IN ('globalReplacementMap') THEN
+        SET `is_valid` = FALSE;
+        SET `error_message` = 'Invalid name: Cannot be globalReplacementMap';
+    END IF;
 END;
 //
 
@@ -729,6 +751,44 @@ BEGIN
         `error_message`
     );
     
+    IF NOT `is_valid` THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = `error_message`;
+    END IF;
+END;
+//
+
+CREATE TRIGGER `before_query_gateway_query_insert`
+BEFORE INSERT ON `query_gateway_queries`
+FOR EACH ROW
+BEGIN
+    DECLARE `is_valid` BOOLEAN DEFAULT TRUE;
+    DECLARE `error_message` VARCHAR(255);
+
+    CALL `validate_query_gateway_query`(
+        NEW.`name`,
+        `is_valid`,
+        `error_message`
+    );
+
+    IF NOT `is_valid` THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = `error_message`;
+    END IF;
+END;
+//
+
+CREATE TRIGGER `before_query_gateway_query_update`
+BEFORE UPDATE ON `query_gateway_queries`
+FOR EACH ROW
+BEGIN
+    DECLARE `is_valid` BOOLEAN DEFAULT TRUE;
+    DECLARE `error_message` VARCHAR(255);
+
+    CALL `validate_query_gateway_query`(
+        NEW.`name`,
+        `is_valid`,
+        `error_message`
+    );
+
     IF NOT `is_valid` THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = `error_message`;
     END IF;
