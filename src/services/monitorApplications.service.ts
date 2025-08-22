@@ -76,11 +76,11 @@ const fetchMonitorApplicationHealthMap = async (monitorApplication: monitor_appl
 
   const api = await prisma.api_gateway_apis.findUnique({ where: { id: monitorApplication.api_gateway_api_id } });
   const subResponse = api ? response.data.data[api.name] : null;
-  const subResponseDataMonitor = subResponse?.data?.monitor as Record<string, IProperty.IProperty> | undefined;
+  const subResponseDataMonitor = subResponse?.monitor as Record<string, IProperty.IProperty> | undefined;
 
   if (!isObjectType(subResponseDataMonitor)) {
     return { 
-      isHealthy: subResponse.status,
+      isHealthy: false,
       propertyRetentionMap: defaultRetentionMap
     };
   }
