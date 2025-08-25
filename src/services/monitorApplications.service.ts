@@ -116,12 +116,12 @@ const fetchMonitorApplicationHealthMap = async (monitorApplication: monitor_appl
     }
   );
 
-  const propertyRemovedSet = new Set<string>();
+  const propertyRemovedMap: Record<string, IProperty.IProperty> = {};
 
   monitorApplicationResponseMapKeySet?.forEach(
     (key: string): void => {
       if (!subResponseDataMonitorKeySet.has(key)) {
-        propertyRemovedSet.add(key);
+        propertyRemovedMap[key] = (monitorApplicationResponseMap as Record<string, IProperty.IProperty>)[key];
       }
     }
   );
@@ -129,7 +129,7 @@ const fetchMonitorApplicationHealthMap = async (monitorApplication: monitor_appl
   const propertyRetentionMap: Record<string, IProperty.IProperty> = {
     ...Object.fromEntries(
       [...subResponseDataMonitorKeySet]
-        .filter((key: string): boolean => !propertyAddedMap[key] && !propertyModifiedMap[key] && !propertyRemovedSet.has(key))
+        .filter((key: string): boolean => !propertyAddedMap[key] && !propertyModifiedMap[key] && !propertyRemovedMap[key])
         .map((key: string): [string, IProperty.IProperty] => [key, subResponseDataMonitor[key]])
     ),
     ...defaultRetentionMap
@@ -140,7 +140,7 @@ const fetchMonitorApplicationHealthMap = async (monitorApplication: monitor_appl
     responseMap: subResponseDataMonitor,
     propertyAddedMap,
     propertyModifiedMap,
-    propertyRemovedSet,
+    propertyRemovedMap,
     propertyRetentionMap
   };
 };
@@ -203,10 +203,10 @@ const formatMonitorApplicationMessageMap = (
           .values(monitorApplicationHealthMap.propertyModifiedMap)
           .reduce((accumulator: string, property: IProperty.IProperty): string => `${ accumulator }\n~ ${ property.name }: _${ property.value }_`, messagePrefix)
       : undefined,
-    propertyRemovedMessage: monitorApplicationHealthMap.propertyRemovedSet && monitorApplicationHealthMap.propertyRemovedSet.size
-      ? Array
-          .from(monitorApplicationHealthMap.propertyRemovedSet)
-          .reduce((accumulator: string, name: string): string => `${ accumulator }\n- ${ name }`, messagePrefix)
+    propertyRemovedMessage: monitorApplicationHealthMap.propertyRemovedMap && Object.keys(monitorApplicationHealthMap.propertyRemovedMap).length
+      ? Object
+          .values(monitorApplicationHealthMap.propertyRemovedMap)
+          .reduce((accumulator: string, property: IProperty.IProperty): string => `${ accumulator }\n- ${ property.name }`, messagePrefix)
       : undefined,
     propertyRetentionMessage: Object
       .values(monitorApplicationHealthMap.propertyRetentionMap)
@@ -223,7 +223,7 @@ const processMonitorApplication = async (
     const isAliveTransitioned = monitorApplicationHealthMap.isHealthy !== monitorApplication.is_alive;
     const hasPropertyAdded = !!(monitorApplicationHealthMap.propertyAddedMap && Object.keys(monitorApplicationHealthMap.propertyAddedMap).length);
     const hasPropertyModified = !!(monitorApplicationHealthMap.propertyModifiedMap && Object.keys(monitorApplicationHealthMap.propertyModifiedMap).length);
-    const hasPropertyRemoved = !!(monitorApplicationHealthMap.propertyRemovedSet && monitorApplicationHealthMap.propertyRemovedSet.size);
+    const hasPropertyRemoved = !!(monitorApplicationHealthMap.propertyRemovedMap?.length);
 
     if (
       isPeriodicWarn ||

@@ -5,6 +5,6 @@ export interface IMonitorApplicationHealthMap {
   responseMap?: Record<string, IProperty.IProperty>;
   propertyAddedMap?: Record<string, IProperty.IProperty>;
   propertyModifiedMap?: Record<string, IProperty.IProperty>;
-  propertyRemovedSet?: Set<string>;
+  propertyRemovedMap?: Record<string, IProperty.IProperty>;
   propertyRetentionMap: Record<string, IProperty.IProperty>;
 }
