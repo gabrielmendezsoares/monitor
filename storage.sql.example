@@ -272,7 +272,7 @@ CREATE TABLE `network_tracker_hosts` (
     `description` VARCHAR(255) NOT NULL,
     `account_id` VARCHAR(255) NOT NULL,
     `partition_id` VARCHAR(255) NOT NULL,
-    `zone_id` VARCHAR(255),
+    `zone_id` INT UNSIGNED,
     `consecutive_successes` INT NOT NULL DEFAULT 0,
     `consecutive_failures` INT NOT NULL DEFAULT 0,
     `is_alive` BOOLEAN NOT NULL DEFAULT TRUE,
