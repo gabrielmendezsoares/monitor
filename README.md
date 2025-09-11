@@ -25,7 +25,7 @@ By querying centralized API Gateway sources, Monitor dynamically retrieves syste
 
 - [**Node.js**](https://nodejs.org/) ≥ `20.14.0` — _JavaScript runtime environment_
 - [**MySQL**](https://www.mysql.com/) ≥ `8.0` — _Relational database_
-- [**API Gateway**](https://github.com/gabrielmendezsoares/api-gateway) ≥ `3.0.2` — _External API orchestration service_
+- [**API Gateway**](https://github.com/gabrielmendezsoares/api-gateway) ≥ `3.0.3` — _External API orchestration service_
 
 ### ⚙️ Setup 
 

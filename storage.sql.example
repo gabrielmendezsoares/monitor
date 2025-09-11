@@ -24,6 +24,7 @@ DROP TABLE IF EXISTS `sigma_cloud_alarm_events`;
 DROP TABLE IF EXISTS `sigma_cloud_d_guard_integration_layouts`;
 DROP TABLE IF EXISTS `sigma_cloud_d_guard_integration_workstations`;
 DROP TABLE IF EXISTS `sigma_cloud_d_guard_integration_servers`;
+DROP TABLE IF EXISTS `sigma_cloud_dispatches_tracker_triggers`;
 DROP TABLE IF EXISTS `sigma_cloud_neppo_integration_satisfaction_surveys`;
 DROP TABLE IF EXISTS `users`;
 
@@ -270,8 +271,8 @@ CREATE TABLE `network_tracker_hosts` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `ip` VARCHAR(255) NOT NULL UNIQUE,
     `description` VARCHAR(255) NOT NULL,
-    `account_id` VARCHAR(255) NOT NULL,
-    `partition_id` VARCHAR(255) NOT NULL,
+    `account_id` INT UNSIGNED NOT NULL,
+    `partition_id` INT UNSIGNED NOT NULL,
     `zone_id` INT UNSIGNED,
     `consecutive_successes` INT NOT NULL DEFAULT 0,
     `consecutive_failures` INT NOT NULL DEFAULT 0,
@@ -447,6 +448,21 @@ CREATE TABLE `sigma_cloud_d_guard_integration_workstations` (
 
     INDEX `idx_guid` (`guid`),
     INDEX `idx_sigma_cloud_d_guard_integration_server_id` (`sigma_cloud_d_guard_integration_server_id`),
+    INDEX `idx_created_at` (`created_at`),
+    INDEX `idx_updated_at` (`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `sigma_cloud_dispatches_tracker_triggers` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `account_id` INT UNSIGNED NOT NULL UNIQUE,
+    `quantity` INT UNSIGNED NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+
+    INDEX `idx_account_id` (`account_id`),
+    INDEX `idx_quantity` (`quantity`),
     INDEX `idx_created_at` (`created_at`),
     INDEX `idx_updated_at` (`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
