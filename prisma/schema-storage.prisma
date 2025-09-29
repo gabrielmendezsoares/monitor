@@ -245,16 +245,19 @@ model api_gateway_apis {
 }
 
 model fence_tracker_triggers {
-  id         Int      @id @default(autoincrement())
-  key        String   @unique(map: "key") @db.VarChar(255)
-  quantity   Int
-  created_at DateTime @default(now()) @db.DateTime(0)
-  updated_at DateTime @default(now()) @db.DateTime(0)
+  id           Int      @id @default(autoincrement())
+  account_code String   @db.VarChar(255)
+  zone_name    String   @db.VarChar(255)
+  quantity     Int      @db.UnsignedInt
+  created_at   DateTime @default(now()) @db.Timestamp(0)
+  updated_at   DateTime @default(now()) @db.Timestamp(0)
 
+  @@unique([account_code, zone_name], map: "unique_account_code_zone_name")
   @@index([created_at], map: "idx_created_at")
-  @@index([key], map: "idx_key")
   @@index([quantity], map: "idx_quantity")
   @@index([updated_at], map: "idx_updated_at")
+  @@index([account_code], map: "idx_account_code")
+  @@index([zone_name], map: "idx_zone_name")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -412,5 +415,129 @@ model sigma_cloud_neppo_integration_satisfaction_surveys {
   @@index([started_at], map: "idx_started_at")
   @@index([status], map: "idx_status")
   @@index([type], map: "idx_type")
+  @@index([updated_at], map: "idx_updated_at")
+}
+
+model fence_tracker_registers {
+  id                Int      @id @default(autoincrement())
+  account_code      String   @db.VarChar(255)
+  condominium       String   @db.VarChar(255)
+  cabinet           String   @db.VarChar(255)
+  zone_name         String   @db.VarChar(255)
+  quantity          Int      @db.UnsignedInt
+  period_started_at DateTime @db.Timestamp(0)
+  period_ended_at   DateTime @db.Timestamp(0)
+  created_at        DateTime @default(now()) @db.Timestamp(0)
+  updated_at        DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([account_code], map: "idx_account_code")
+  @@index([cabinet], map: "idx_cabinet")
+  @@index([condominium], map: "idx_condominium")
+  @@index([created_at], map: "idx_created_at")
+  @@index([period_ended_at], map: "idx_period_ended_at")
+  @@index([period_started_at], map: "idx_period_started_at")
+  @@index([quantity], map: "idx_quantity")
+  @@index([updated_at], map: "idx_updated_at")
+  @@index([zone_name], map: "idx_zone_name")
+}
+
+model sigma_cloud_dispatches_tracker_registers {
+  id                 Int      @id @default(autoincrement())
+  account_code       String   @db.VarChar(255)
+  trade_name         String   @db.VarChar(255)
+  company_trade_name String   @db.VarChar(255)
+  client_group_name  String   @db.VarChar(255)
+  quantity           Int      @db.UnsignedInt
+  period_started_at  DateTime @db.Timestamp(0)
+  period_ended_at    DateTime @db.Timestamp(0)
+  created_at         DateTime @default(now()) @db.Timestamp(0)
+  updated_at         DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([account_code], map: "idx_account_code")
+  @@index([client_group_name], map: "idx_client_group_name")
+  @@index([company_trade_name], map: "idx_company_trade_name")
+  @@index([created_at], map: "idx_created_at")
+  @@index([period_ended_at], map: "idx_period_ended_at")
+  @@index([period_started_at], map: "idx_period_started_at")
+  @@index([quantity], map: "idx_quantity")
+  @@index([trade_name], map: "idx_trade_name")
+  @@index([updated_at], map: "idx_updated_at")
+}
+
+model sigma_cloud_dispatches_tracker_triggers {
+  id         Int      @id @default(autoincrement())
+  account_id Int      @unique(map: "account_id") @db.UnsignedInt
+  quantity   Int      @db.UnsignedInt
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([account_id], map: "idx_account_id")
+  @@index([created_at], map: "idx_created_at")
+  @@index([quantity], map: "idx_quantity")
+  @@index([updated_at], map: "idx_updated_at")
+}
+
+model sigma_cloud_dispatches_tracker_window {
+  id         Int      @id @default(autoincrement())
+  started_at DateTime @default(now()) @db.Timestamp(0)
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([created_at], map: "idx_created_at")
+  @@index([started_at], map: "idx_started_at")
+  @@index([updated_at], map: "idx_updated_at")
+}
+
+model sigma_cloud_events_tracker_registers {
+  id                 Int      @id @default(autoincrement())
+  account_code       String   @db.VarChar(255)
+  trade_name         String   @db.VarChar(255)
+  company_trade_name String   @db.VarChar(255)
+  client_group_name  String   @db.VarChar(255)
+  cuc                String   @db.VarChar(255)
+  code               String   @db.VarChar(255)
+  quantity           Int      @db.UnsignedInt
+  period_started_at  DateTime @db.Timestamp(0)
+  period_ended_at    DateTime @db.Timestamp(0)
+  created_at         DateTime @default(now()) @db.Timestamp(0)
+  updated_at         DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([account_code], map: "idx_account_code")
+  @@index([client_group_name], map: "idx_client_group_name")
+  @@index([code], map: "idx_code")
+  @@index([company_trade_name], map: "idx_company_trade_name")
+  @@index([created_at], map: "idx_created_at")
+  @@index([cuc], map: "idx_cuc")
+  @@index([period_ended_at], map: "idx_period_ended_at")
+  @@index([period_started_at], map: "idx_period_started_at")
+  @@index([quantity], map: "idx_quantity")
+  @@index([trade_name], map: "idx_trade_name")
+  @@index([updated_at], map: "idx_updated_at")
+}
+
+model sigma_cloud_events_tracker_triggers {
+  id         Int      @id @default(autoincrement())
+  account_id Int      @db.UnsignedInt
+  cuc        String   @db.VarChar(255)
+  code       String   @db.VarChar(255)
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+
+  @@unique([account_id, cuc, code], map: "unique_account_id_cuc_code")
+  @@index([account_id], map: "idx_account_id")
+  @@index([code], map: "idx_code")
+  @@index([created_at], map: "idx_created_at")
+  @@index([cuc], map: "idx_cuc")
+  @@index([updated_at], map: "idx_updated_at")
+}
+
+model sigma_cloud_events_tracker_window {
+  id         Int      @id @default(autoincrement())
+  started_at DateTime @default(now()) @db.Timestamp(0)
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([created_at], map: "idx_created_at")
+  @@index([started_at], map: "idx_started_at")
   @@index([updated_at], map: "idx_updated_at")
 }
